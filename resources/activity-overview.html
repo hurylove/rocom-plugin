@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "AlimamaFangYuan";
+    src: url("{{fontUrl}}") format("truetype");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    width: 760px;
+    transform: scale({{renderScale}});
+    transform-origin: top left;
+    padding: 28px;
+    font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #efe8da;
+    color: #2b2823;
+  }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px 17px;
+    border-bottom: 2px solid #d8cfbd;
+    margin-bottom: 18px;
+  }
+  .title { font-size: 25px; font-weight: 700; color: #3a3428; }
+  .title small { display: block; margin-top: 7px; font-size: 12px; font-weight: 400; color: #929086; }
+  .summary { display: flex; gap: 8px; }
+  .summary span {
+    display: inline-block; padding: 4px 11px; border-radius: 18px;
+    background: #fbf7ef; border: 1px solid #e4dbc9;
+    color: #8a6a1e; font-size: 12px; font-weight: 700;
+  }
+  .section { margin-top: 16px; }
+  .section:first-of-type { margin-top: 0; }
+  .section-title {
+    display: flex; align-items: center; gap: 8px; margin: 0 3px 10px;
+    color: #7a5a20; font-size: 15px; font-weight: 700;
+  }
+  .section-title::before { content: ""; width: 4px; height: 15px; border-radius: 2px; background: #f0c96a; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+  .activity {
+    min-width: 0; overflow: hidden; background: #fbf7ef;
+    border: 1px solid #e4dbc9; border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(120,100,70,.06);
+  }
+  .cover { height: 92px; background: #f2ead9; border-bottom: 1px solid #e8ddc8; overflow: hidden; }
+  .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .body { padding: 10px 11px 11px; }
+  .name { font-size: 15px; font-weight: 700; color: #332e25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; min-width: 0; }
+  .category { color: #7a5a20; font-size: 11px; font-weight: 700; }
+  .time { color: #929086; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reward { margin-top: 6px; color: #8a8271; font-size: 11px; line-height: 1.4; min-height: 15px; }
+  .footer { margin-top: 17px; padding: 0 3px; color: #a49b89; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">活动总览
+      <small>洛克王国世界 · 进行中与即将开启</small>
+    </div>
+    <div class="summary">
+      <span>进行中 {{activity.totalActive}}</span>
+      <span>即将开启 {{activity.totalUpcoming}}</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">进行中</div>
+    <div class="grid">
+      {{each activity.active item}}
+      <div class="activity">
+        <div class="cover">{{if item.cover}}<img src="{{item.cover}}" alt="{{item.title}}">{{/if}}</div>
+        <div class="body">
+          <div class="name">{{item.title}}</div>
+          <div class="meta"><span class="category">{{item.category}}</span><span class="time">{{item.start}} — {{item.end}}</span></div>
+          <div class="reward">{{if item.rewards}}奖励：{{item.rewards}}{{else}}暂未标注奖励{{/if}}</div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">即将开启</div>
+    <div class="grid">
+      {{each activity.upcoming item}}
+      <div class="activity">
+        <div class="cover">{{if item.cover}}<img src="{{item.cover}}" alt="{{item.title}}">{{/if}}</div>
+        <div class="body">
+          <div class="name">{{item.title}}</div>
+          <div class="meta"><span class="category">{{item.category}}</span><span class="time">{{item.start}} — {{item.end}}</span></div>
+          <div class="reward">{{if item.rewards}}奖励：{{item.rewards}}{{else}}暂未标注奖励{{/if}}</div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="footer">rocom-plugin · 共显示 {{activity.active.length}} 个进行中活动、{{activity.upcoming.length}} 个近期开启活动</div>
+</body>
+</html>
