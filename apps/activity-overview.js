@@ -60,9 +60,9 @@ export class RocomActivityOverview extends BaseApp {
 
   textFallback(activity) {
     const lines = [
-      `进行中（显示 ${activity.active.length} / ${activity.totalActive}）：`,
+      `进行中（共 ${activity.totalActive} 个）：`,
       ...activity.active.map((item) => `· ${item.title} · ${item.start} — ${item.end}`),
-      `即将开启（显示 ${activity.upcoming.length} / ${activity.totalUpcoming}）：`,
+      `即将开启（共 ${activity.totalUpcoming} 个）：`,
       ...activity.upcoming.map((item) => `· ${item.title} · ${item.start} 开启`)
     ]
     return lines.join('\n')

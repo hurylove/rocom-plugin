@@ -108,8 +108,8 @@ export function parseActivitiesFromHtml(html, now = new Date()) {
   return {
     totalActive: activeList.length,
     totalUpcoming: upcomingList.length,
-    active: activeList.slice(0, 12),
-    upcoming: upcomingList.slice(0, 8)
+    active: activeList,
+    upcoming: upcomingList
   }
 }
 
