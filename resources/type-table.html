@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "AlimamaFangYuan";
+    src: url("{{fontUrl}}") format("truetype");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    width: 1000px;
+    transform: scale({{renderScale}});
+    transform-origin: top left;
+    padding: 26px;
+    font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #efe8da;
+    color: #2b2823;
+  }
+  .header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 4px 15px;
+    border-bottom: 2px solid #d8cfbd;
+    margin-bottom: 15px;
+  }
+  .title { font-size: 25px; font-weight: 700; color: #3a3428; }
+  .title small { display: block; margin-top: 7px; font-size: 12px; font-weight: 400; color: #929086; }
+  .legend { display: flex; gap: 14px; align-items: center; font-size: 12px; color: #7a7264; }
+  .legend i {
+    display: inline-block; width: 13px; height: 13px; border-radius: 3px;
+    margin-right: 5px; vertical-align: -2px; font-style: normal;
+  }
+  .lg2 { background: #f3c9bd; border: 1px solid #e0a294; }
+  .lg05 { background: #cfdcea; border: 1px solid #a8c0d8; }
+  .lg1 { background: #fbf7ef; border: 1px solid #e4dbc9; }
+
+  table { border-collapse: separate; border-spacing: 0; }
+  th, td { text-align: center; }
+  .corner { width: 96px; }
+  .corner .tip { font-size: 11px; color: #a49b89; font-weight: 400; line-height: 1.3; }
+  .colhead, .rowhead {
+    font-size: 12px; font-weight: 700; color: #5a5244;
+  }
+  .colhead { padding: 0 0 7px; }
+  .colhead img { width: 24px; height: 24px; object-fit: contain; display: block; margin: 0 auto 2px; }
+  .rowhead { padding-right: 7px; }
+  .rowhead .in { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+  .rowhead img { width: 20px; height: 20px; object-fit: contain; }
+  .cell {
+    width: 46px; height: 32px;
+    font-size: 12px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    border-top: 1px solid #ece3d2;
+    border-left: 1px solid #ece3d2;
+  }
+  tbody tr:last-child .cell { border-bottom: 1px solid #ece3d2; }
+  .cell:last-child { border-right: 1px solid #ece3d2; }
+  .v2 { background: #f3c9bd; color: #a83a26; }
+  .v05 { background: #cfdcea; color: #3f6386; }
+  .v1 { background: #fbf7ef; color: #cfc7b6; }
+  .footer { margin-top: 14px; padding: 0 3px; color: #a49b89; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">系别克制总表
+      <small>洛克王国世界 · 行=攻击方，列=防守方</small>
+    </div>
+    <div class="legend">
+      <span><i class="lg2"></i>2× 克制</span>
+      <span><i class="lg05"></i>0.5× 抵抗</span>
+      <span><i class="lg1"></i>1× 常规</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="corner"><div class="tip">攻击 ↓ / 防守 →</div></th>
+        {{each data.types item}}
+        <th class="colhead">{{if data.icons[item]}}<img src="{{data.icons[item]}}" alt="{{item}}">{{/if}}{{item}}</th>
+        {{/each}}
+      </tr>
+    </thead>
+    <tbody>
+      {{each data.rows row}}
+      <tr>
+        <th class="rowhead"><div class="in">{{if data.icons[row.type]}}<img src="{{data.icons[row.type]}}" alt="{{row.type}}">{{/if}}{{row.type}}</div></th>
+        {{each row.cells cell}}
+        <td class="cell {{if cell.value === 2}}v2{{else if cell.value === 0.5}}v05{{else}}v1{{/if}}">{{cell.text}}</td>
+        {{/each}}
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="footer">rocom-plugin · 共 {{data.types.length}} 个系</div>
+</body>
+</html>

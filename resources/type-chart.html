@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "AlimamaFangYuan";
+    src: url("{{fontUrl}}") format("truetype");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    width: 760px;
+    transform: scale({{renderScale}});
+    transform-origin: top left;
+    padding: 28px;
+    font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #efe8da;
+    color: #2b2823;
+  }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px 17px;
+    border-bottom: 2px solid #d8cfbd;
+    margin-bottom: 18px;
+  }
+  .title { font-size: 25px; font-weight: 700; color: #3a3428; }
+  .title small { display: block; margin-top: 7px; font-size: 12px; font-weight: 400; color: #929086; }
+  .picked { display: flex; gap: 8px; }
+  .picked .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px 5px 8px; border-radius: 20px;
+    background: #fbf7ef; border: 1px solid #e4dbc9;
+    color: #8a6a1e; font-size: 14px; font-weight: 700;
+  }
+  .picked .chip img { width: 22px; height: 22px; object-fit: contain; }
+  .footer { margin-top: 17px; padding: 0 3px; color: #a49b89; font-size: 12px; text-align: center; }
+
+  .panel {
+    background: #fbf7ef; border: 1px solid #e4dbc9; border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(120,100,70,.06);
+    padding: 14px 16px 15px; margin-bottom: 12px;
+  }
+  .panel:last-of-type { margin-bottom: 0; }
+  .panel-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 11px; font-size: 15px; font-weight: 700; color: #7a5a20;
+  }
+  .panel-head::before { content: ""; width: 4px; height: 15px; border-radius: 2px; background: #f0c96a; }
+  .panel-head .note { margin-left: auto; font-size: 11px; font-weight: 400; color: #a49b89; }
+  .row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; }
+  .row + .row { border-top: 1px dashed #ece3d2; }
+  .mult {
+    flex: 0 0 62px; padding-top: 2px;
+    font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .m4 { color: #c0392b; } .m2 { color: #d98324; } .m05 { color: #5a7fa8; } .m025 { color: #4a6a90; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+  .chip2 {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px 3px 5px; border-radius: 14px;
+    background: #f3ead6; border: 1px solid #e8dcc2;
+    font-size: 12px; font-weight: 700; color: #5a5244;
+  }
+  .chip2 img { width: 18px; height: 18px; object-fit: contain; }
+  .empty { color: #a49b89; font-size: 13px; padding: 4px 0; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">系别克制
+      <small>洛克王国世界 · {{data.types.length}} 个系</small>
+    </div>
+    <div class="picked">
+      {{each data.selected item}}
+      <span class="chip">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">我方进攻<span class="note">用 {{data.types.join(' + ')}} 打出去</span></div>
+    {{if data.attack.empty}}
+    <div class="empty">对全部 18 个系均为常规倍率（1×）</div>
+    {{else}}
+    {{if data.attack.x4.length}}<div class="row"><div class="mult m4">4×</div><div class="chips">{{each data.attack.x4 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{if data.attack.x2.length}}<div class="row"><div class="mult m2">2×</div><div class="chips">{{each data.attack.x2 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{if data.attack.x05.length}}<div class="row"><div class="mult m05">0.5×</div><div class="chips">{{each data.attack.x05 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{if data.attack.x025.length}}<div class="row"><div class="mult m025">0.25×</div><div class="chips">{{each data.attack.x025 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{/if}}
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">我方防守<span class="note">被这些系打进来</span></div>
+    {{if data.defend.empty}}
+    <div class="empty">对全部 18 个系均为常规倍率（1×）</div>
+    {{else}}
+    {{if data.defend.x4.length}}<div class="row"><div class="mult m4">4×</div><div class="chips">{{each data.defend.x4 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{if data.defend.x2.length}}<div class="row"><div class="mult m2">2×</div><div class="chips">{{each data.defend.x2 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{if data.defend.x05.length}}<div class="row"><div class="mult m05">0.5×</div><div class="chips">{{each data.defend.x05 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{if data.defend.x025.length}}<div class="row"><div class="mult m025">0.25×</div><div class="chips">{{each data.defend.x025 item}}<span class="chip2">{{if item.icon}}<img src="{{item.icon}}" alt="{{item.type}}">{{/if}}{{item.type}}</span>{{/each}}</div></div>{{/if}}
+    {{/if}}
+  </div>
+
+  <div class="footer">rocom-plugin · 双系叠加后倍率相乘，未列出的系别均为 1×</div>
+</body>
+</html>
