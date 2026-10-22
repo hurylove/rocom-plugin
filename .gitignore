@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+*.log
+.preview/
+fontwork/
+temp/
+
+# 用户个人配置（含群号、订阅关键词），不应提交
+config/config.yaml
+data/

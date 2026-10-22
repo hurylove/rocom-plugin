@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "AlimamaFangYuan";
+    src: url("font/AlimamaFangYuanTiVF.ttf") format("truetype");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    width: 720px;
+    padding: 30px 26px 26px;
+    font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #efe8da;
+    color: #2b2823;
+  }
+
+  /* ---------- 页眉 ---------- */
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 0 2px 18px;
+    border-bottom: 2px solid #d8cfbd;
+    margin-bottom: 18px;
+  }
+  .title { font-size: 25px; font-weight: 700; letter-spacing: 1px; color: #3a3428; }
+  .title small {
+    display: block; font-size: 12px; font-weight: 400; color: #929086;
+    margin-top: 7px; letter-spacing: .4px;
+  }
+  .badge { text-align: right; padding-right: 14px; }
+  .badge .round {
+    display: inline-block;
+    font-size: 14px; font-weight: 700; color: #7a5a20;
+    background: #ffe6b0; border: 1px solid #f0c96a;
+    padding: 3px 12px; border-radius: 20px;
+  }
+  .badge .left { font-size: 12px; color: #929086; margin-top: 8px; }
+
+  /* ---------- 商品列表 ---------- */
+  .list { display: flex; flex-direction: column; gap: 12px; }
+  .goods {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 16px;
+    background: #fbf7ef;
+    border: 1px solid #e4dbc9;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(120,100,70,.06);
+  }
+  .pic {
+    width: 58px; height: 58px; flex: none;
+    border-radius: 10px;
+    background: #f2ead9;
+    border: 1px solid #e8ddc8;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .pic img { width: 100%; height: 100%; object-fit: contain; }
+  .pic span { font-size: 22px; color: #c3b79f; }
+
+  .info { flex: 1; min-width: 0; }
+  .name {
+    font-size: 16px; font-weight: 700; color: #332e25;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .desc {
+    font-size: 13px; color: #8a8271; line-height: 1.45; margin-top: 5px;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 5px;
+    color: #8a8271; background: #f0e9dc; border: 1px solid #e6ddcc;
+  }
+  .tag.hot { color: #b5532a; background: #fbe4d6; border-color: #f2cdb8; }
+  .tag.worth { color: #8a6a1e; background: #fdf0cc; border-color: #f0dca2; }
+
+  .pricebox { text-align: right; flex: none; padding-left: 8px; }
+  .price {
+    font-size: 17px; font-weight: 700; color: #d56c1f;
+    font-variant-numeric: tabular-nums;
+  }
+  .price::after {
+    content: " 币"; font-size: 10px; font-weight: 400; color: #b0a692;
+  }
+  .limit { display: block; font-size: 11px; color: #a49b89; margin-top: 5px; }
+
+  /* ---------- 空态 / 页脚 ---------- */
+  .empty { text-align: center; padding: 52px 0; color: #a49b89; font-size: 14px; line-height: 2; }
+  .footer { margin-top: 16px; font-size: 12px; color: #a49b89; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">远行商人
+      <small>洛克王国世界 · 当前轮次货物</small>
+    </div>
+    <div class="badge">
+      {{if slot}}
+      <div class="round">{{slot.name}}</div>
+      <div class="left">{{slot.start}}-{{slot.end}} · 剩余 {{leftText}}</div>
+      {{else}}
+      <div class="round">未营业</div>
+      <div class="left">距下一轮 {{nextText}}</div>
+      {{/if}}
+    </div>
+  </div>
+
+  {{if goods && goods.length}}
+  <div class="list">
+    {{each goods item}}
+    <div class="goods">
+      <div class="pic">
+        {{if item.img}}<img src="{{item.img}}" alt="{{item.name}}">{{else}}<span>{{item.name[0]}}</span>{{/if}}
+      </div>
+      <div class="info">
+        <div class="name">{{item.name}}{{if item.hot}}<span class="tag hot">热门</span>{{/if}}{{if item.worth}}<span class="tag worth">稀有</span>{{/if}}</div>
+        {{if item.content}}<div class="desc">{{item.content}}</div>{{/if}}
+        <div class="meta">
+          {{each item.tags t}}<span class="tag">{{t}}</span>{{/each}}
+        </div>
+      </div>
+      <div class="pricebox">
+        <span class="price">{{item.price}}</span>
+        <span class="limit">限购 {{item.buy_limit > 0 ? item.buy_limit : '不限'}}</span>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+  {{else}}
+  <div class="empty">
+    {{if slot}}本轮暂无在售货物<br>数据来源尚未更新{{else}}远行商人今日已结束营业<br>下一轮 {{nextText}} 后开始{{/if}}
+  </div>
+  {{/if}}
+
+  <div class="footer">数据来源 db.18183.com · {{nowText}}</div>
+</body>
+</html>

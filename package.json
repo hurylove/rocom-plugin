@@ -1,0 +1,20 @@
+{
+  "name": "rocom-plugin",
+  "version": "0.1.0",
+  "description": "洛克王国世界（rocom）Yunzai 插件框架",
+  "type": "module",
+  "module": "index.js",
+  "main": "index.js",
+  "author": "",
+  "license": "MIT",
+  "imports": {
+    "#rocom": "./components/index.js"
+  },
+  "keywords": [
+    "yunzai",
+    "rocom"
+  ],
+  "dependencies": {
+    "art-template": "^4.13.2"
+  }
+}
