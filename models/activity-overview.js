@@ -1,4 +1,6 @@
-/** 洛克王国世界活动档案快照。来源：wiki.biligame.com/nrc/活动档案，抓取时间：2026-10-22T16:54:48+08:00。 */
+/** 洛克王国世界活动档案快照与缓存管理 */
+import { getLocalActivityOverview } from './activity-crawler.js'
+
 const CATEGORY = {
   gifts: '签到与福利',
   pets: '精灵与探索',
@@ -11,7 +13,8 @@ const activity = (id, title, code, start, end, rewards, cover) => ({
   id, title, category: CATEGORY[code] || code, start, end, rewards, cover
 })
 
-const ACTIVITY_DATA = {
+/** 内置静态兜底数据（无本地缓存时使用） */
+const STATIC_ACTIVITY_DATA = {
   updatedAt: '2026-10-22T16:54:48+08:00',
   totalActive: 25,
   totalUpcoming: 14,
@@ -41,4 +44,10 @@ const ACTIVITY_DATA = {
   ]
 }
 
-export function getActivityOverview() { return ACTIVITY_DATA }
+export function getActivityOverview() {
+  const local = getLocalActivityOverview()
+  if (local && Array.isArray(local.active) && local.active.length > 0) {
+    return local
+  }
+  return STATIC_ACTIVITY_DATA
+}
