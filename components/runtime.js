@@ -1,4 +1,4 @@
-import { loadConfig } from './config.js'
+import { loadConfig, watchConfig } from './config.js'
 
 let cache = loadConfig()
 
@@ -15,6 +15,11 @@ export const getBot = () => globalThis.Bot
 export function reloadConfig() {
   cache = loadConfig()
   return cache
+}
+
+/** 监听配置文件变化，改完即生效 */
+export function initConfigWatch() {
+  watchConfig(() => reloadConfig())
 }
 
 /** 群是否允许响应命令 */

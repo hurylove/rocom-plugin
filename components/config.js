@@ -2,10 +2,52 @@ import fs from 'node:fs'
 import YAML from 'yaml'
 import { pluginDir } from './paths.js'
 
-const defaultPath = pluginDir + 'config/default_config.yaml'
-const userPath = pluginDir + 'config/config.yaml'
+const configDir = pluginDir + 'config/'
+const defaultPath = configDir + 'default_config.yaml'
+const userPath = configDir + 'config.yaml'
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
+
+/** 默认配置内联兜底，default_config.yaml 丢失时也能启动 */
+const DEFAULT_CONFIG = {
+  groupWhite: [],
+  groupBlack: [],
+  renderScale: 100,
+  subscribe: {
+    enable: false,
+    atAll: true,
+    groups: [],
+    keywords: [],
+    delaySeconds: 120,
+    retry: 5,
+    retryIntervalSeconds: 30
+  }
+}
+
+
+const header = `# =======================================
+# 本文件为 rocom-plugin 的用户配置
+# 未在此定义的字段将采用 default_config.yaml 的默认值
+# 修改后即时生效，无需重启
+# =======================================
+`
+
+/** 缺文件时自动生成，用户不用手动创建 */
+function ensureConfigFile(file, content) {
+  if (fs.existsSync(file)) return
+  fs.mkdirSync(configDir, { recursive: true })
+  fs.writeFileSync(file, content, 'utf-8')
+  logger.info(`[rocom] 已生成配置文件：${file}`)
+}
+
+function parseYaml(file) {
+  try {
+    return YAML.parse(fs.readFileSync(file, 'utf-8')) || {}
+  } catch (err) {
+    logger.error(`[rocom] YAML 格式错误：${file}\n`, err.message)
+    return {}
+  }
+}
 
 /** 深合并，用户配置优先 */
 function merge(base, over) {
@@ -19,18 +61,8 @@ function merge(base, over) {
   return out
 }
 
-function readYaml(file) {
-  if (!fs.existsSync(file)) return {}
-  try {
-    return YAML.parse(fs.readFileSync(file, 'utf-8')) || {}
-  } catch (err) {
-    logger.error(`[rocom] 配置解析失败：${file}`, err)
-    return {}
-  }
-}
-
-export function loadConfig() {
-  const conf = merge(readYaml(defaultPath), readYaml(userPath))
+/** 按字段类型修正，防止手写 yaml 写错类型 */
+function normalize(conf) {
   conf.groupWhite = Array.isArray(conf.groupWhite) ? conf.groupWhite.map(String) : []
   conf.groupBlack = Array.isArray(conf.groupBlack) ? conf.groupBlack.map(String) : []
   conf.renderScale = Number(conf.renderScale) || 100
@@ -45,5 +77,30 @@ export function loadConfig() {
   s.retryIntervalSeconds = Number(s.retryIntervalSeconds) > 0 ? Number(s.retryIntervalSeconds) : 30
   return conf
 }
+
+export function loadConfig() {
+  ensureConfigFile(defaultPath, YAML.stringify(DEFAULT_CONFIG))
+  ensureConfigFile(userPath, header)
+  return normalize(merge(parseYaml(defaultPath), parseYaml(userPath)))
+}
+
+/** 发现用户配置被修改时热重载 */
+export function watchConfig(onChange) {
+  for (const file of [userPath, defaultPath]) {
+    try {
+      fs.watchFile(file, { interval: 2000 }, () => {
+        try {
+          onChange()
+          logger.info('[rocom] 检测到配置变更，已重载')
+        } catch (err) {
+          logger.error('[rocom] 配置重载失败：', err)
+        }
+      })
+    } catch {
+      /* 监听失败不影响运行 */
+    }
+  }
+}
+
 
 export { defaultPath, userPath }
