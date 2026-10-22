@@ -103,4 +103,31 @@ export function watchConfig(onChange) {
 }
 
 
+/** 保存用户覆盖配置（仅写入与默认值不同的字段） */
+export function saveUserConfig(partial) {
+  ensureConfigFile(defaultPath, YAML.stringify(DEFAULT_CONFIG))
+  const current = fs.existsSync(userPath) ? parseYaml(userPath) : {}
+  const next = { ...current }
+
+  const strip = (obj, def) => {
+    const out = {}
+    for (const [k, v] of Object.entries(obj)) {
+      if (isObj(v) && isObj(def?.[k])) {
+        const sub = strip(v, def[k])
+        if (Object.keys(sub).length) out[k] = sub
+        continue
+      }
+      if (JSON.stringify(v) === JSON.stringify(def?.[k])) continue
+      out[k] = v
+    }
+    return out
+  }
+
+  const merged = merge(next, partial)
+  const diff = strip(merged, DEFAULT_CONFIG)
+  const body = YAML.stringify(diff, { lineWidth: 0 })
+  fs.writeFileSync(userPath, header + (body || ''), 'utf-8')
+  return loadConfig()
+}
+
 export { defaultPath, userPath }
