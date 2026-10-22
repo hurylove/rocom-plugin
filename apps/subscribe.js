@@ -12,7 +12,7 @@ export class RocomSubscribe extends BaseApp {
       name: 'subscribe',
       dsc: '远行商人开轮订阅提醒',
       priority: 5001,
-      task: [{ cron: '0 * * * * *', name: '开轮订阅检查', fnc: () => this.check() }]
+      task: [{ cron: '0 * * * * *', name: '开轮订阅检查', log: false, fnc: () => this.check() }]
     })
   }
 
@@ -42,7 +42,7 @@ export class RocomSubscribe extends BaseApp {
       return
     }
     if (!res.matched.length) {
-      log.i(`${slot.name} 无命中订阅商品`)
+      log.d(`${slot.name} 抓取完成，未命中订阅商品`)
       return
     }
 
@@ -64,20 +64,20 @@ export class RocomSubscribe extends BaseApp {
       try {
         const group = bot.pickGroup(Number(gid) || gid)
         if (!group) {
-          log.w(`群 ${gid} 不可用，跳过`)
+          log.d(`群 ${gid} 不可用，跳过`)
           continue
         }
         try {
           await group.sendMsg(s.atAll ? [segment.at('all'), '\n', ...msg] : msg)
         } catch (err) {
-          log.w(`群 ${gid} @全体失败，降级发送：${err.message}`)
+          log.d(`群 ${gid} @全体失败，降级发送：${err.message}`)
           await group.sendMsg(msg)
         }
         if (img) await group.sendMsg(img)
       } catch (err) {
-        log.e(`群 ${gid} 推送失败：`, err)
+        log.d(`群 ${gid} 推送失败：`, err)
       }
     }
-    log.i(`${slot.name} 订阅提醒已推送 ${s.groups.length} 个群`)
+    log.d(`${slot.name} 订阅提醒已推送 ${s.groups.length} 个群`)
   }
 }
