@@ -14,7 +14,12 @@ export class RocomMerchant extends BaseApp {
   }
 
   async merchant(e) {
-    if (!(await this.checkGroup(e))) return false
+    log.d && log.d(`收到命令：${e.msg} 群：${e.group_id}`)
+    if (!(await this.checkGroup(e))) {
+      log.i(`群 ${e.group_id} 未在放行列表，已忽略`)
+      return false
+    }
+
     let data
     try {
       data = await fetchCurrentGoods()
@@ -22,14 +27,19 @@ export class RocomMerchant extends BaseApp {
       log.e('远行商人数据抓取失败：', err)
       return e.reply('远行商人数据获取失败了，稍后再试试吧~')
     }
+
     const now = new Date()
     const extra = {
       leftText: fmtLeft(data.left),
       nextText: fmtLeft(data.next),
       nowText: `${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
     }
+
+    log.i(`${data.slot ? data.slot.name : '非营业时间'} 抓取到 ${data.goods.length} 件货物`)
     const img = await renderMerchant({ ...data, ...extra })
     if (img) return e.reply(img)
+
+    log.w('渲染失败，使用文字兜底')
     return e.reply(this.textFallback(data, extra))
   }
 

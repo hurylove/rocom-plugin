@@ -3,8 +3,10 @@ import { templateDir } from './paths.js'
 import { config, getBot, isGroupAllowed } from './runtime.js'
 
 export class BaseApp extends plugin {
-  constructor({ name, dsc, rule, priority = 5000, event = 'message.group', task = [] }) {
-    super({ name: `rocom-${name}`, dsc, event, priority, rule })
+  constructor({ name, dsc, rule, priority = 5000, task = [] }) {
+    // 不指定 event：Yunzai 的 filtEvent 对空 event 直接放行，
+    // 由 rule.reg 做精确匹配，避免 event 拼接不一致导致收不到消息
+    super({ name: `rocom-${name}`, dsc, priority, rule })
     this.config = config
     this.Bot = getBot()
     // Yunzai 加载器会遍历 this.task[].cron，必须始终是数组
