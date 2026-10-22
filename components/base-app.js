@@ -3,10 +3,12 @@ import { templateDir } from './paths.js'
 import { config, getBot, isGroupAllowed } from './runtime.js'
 
 export class BaseApp extends plugin {
-  constructor({ name, dsc, rule, priority = 5000, event = 'message.group' }) {
+  constructor({ name, dsc, rule, priority = 5000, event = 'message.group', task = [] }) {
     super({ name: `rocom-${name}`, dsc, event, priority, rule })
     this.config = config
     this.Bot = getBot()
+    // Yunzai 加载器会遍历 this.task[].cron，必须始终是数组
+    this.task = task
   }
 
   /** 群开关校验，未放行的群静默退出 */
@@ -24,13 +26,7 @@ export class BaseApp extends plugin {
       .filter(Boolean)
   }
 
-  /**
-   * 套 html 模板截图
-   * @param {string} name 模板名（resources 下，不含 .html）
-   * @param {object} data 模板数据
-   * @param {string} saveId 图片缓存名
-   * @returns {Promise<object|null>} segment 或 null
-   */
+  /** 套 html 模板截图，失败返回 null */
   async render(name, data = {}, saveId = name) {
     try {
       return await Puppeteer.screenshot(`rocom_${saveId}`, {

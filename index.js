@@ -2,10 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { initConfigWatch } from './components/runtime.js'
-import { startSubscribeScheduler, stopSubscribeScheduler } from './components/scheduler.js'
-import { runSubscribeCheck } from './apps/subscribe.js'
 
-// 配置先就位，后续模块初始化才能读到
 initConfigWatch()
 
 const appsDir = fileURLToPath(new URL('./apps/', import.meta.url))
@@ -25,12 +22,3 @@ for (const file of files) {
 }
 
 logger.info(`[rocom] 已载入 ${loaded}/${files.length} 个模块`)
-
-startSubscribeScheduler(() => runSubscribeCheck(globalThis.Bot)).catch((err) =>
-  logger.error('[rocom] 订阅定时任务启动失败：', err)
-)
-
-export function unload() {
-  stopSubscribeScheduler()
-  logger.info('[rocom] 插件已卸载')
-}
