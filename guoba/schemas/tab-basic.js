@@ -7,7 +7,7 @@ export default [
     label: '渲染缩放（%）',
     component: 'InputNumber',
     componentProps: { min: 50, max: 200 },
-    bottomHelpMessage: '图片渲染比例，100 为原始尺寸。数值越大图越清晰但生成越慢。'
+    bottomHelpMessage: '默认 200，生成两倍像素的 PNG 高清图；100 为原始尺寸。比例越高，图片越大、生成越慢。'
   },
 
   { component: 'Divider', label: '响应群聊' },

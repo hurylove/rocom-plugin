@@ -28,7 +28,7 @@ export function setConfigData(data) {
   }
 
   saveUserConfig({
-    renderScale: toNum(data.renderScale, 100),
+    renderScale: toNum(data.renderScale, 200),
     groupWhite: toArr(data.groupWhite),
     groupBlack: toArr(data.groupBlack),
     subscribe: {

@@ -5,7 +5,7 @@
 <style>
   @font-face {
     font-family: "AlimamaFangYuan";
-    src: url("font/AlimamaFangYuanTiVF.ttf") format("truetype");
+    src: url("{{fontUrl}}") format("truetype");
     font-weight: 100 900;
     font-display: block;
   }
@@ -13,6 +13,8 @@
   html, body { -webkit-font-smoothing: antialiased; }
   body {
     width: 720px;
+    transform: scale({{renderScale}});
+    transform-origin: top left;
     padding: 30px 26px 26px;
     font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
     background: #efe8da;

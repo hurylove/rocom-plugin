@@ -7,8 +7,8 @@
 groupWhite: []
 groupBlack: []
 
-# 渲染缩放（百分比）
-renderScale: 100
+# 渲染缩放（百分比）：200 为两倍像素高清图，100 为原始尺寸
+renderScale: 200
 
 # ---------- 远行商人订阅 ----------
 subscribe:

@@ -12,7 +12,7 @@ const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
 const DEFAULT_CONFIG = {
   groupWhite: [],
   groupBlack: [],
-  renderScale: 100,
+  renderScale: 200,
   subscribe: {
     enable: false,
     atAll: true,
@@ -65,7 +65,10 @@ function merge(base, over) {
 function normalize(conf) {
   conf.groupWhite = Array.isArray(conf.groupWhite) ? conf.groupWhite.map(String) : []
   conf.groupBlack = Array.isArray(conf.groupBlack) ? conf.groupBlack.map(String) : []
-  conf.renderScale = Number(conf.renderScale) || 100
+  const renderScale = Number(conf.renderScale)
+  conf.renderScale = Number.isFinite(renderScale) && renderScale > 0
+    ? Math.min(200, Math.max(50, renderScale))
+    : 200
 
   const s = conf.subscribe || (conf.subscribe = {})
   s.enable = Boolean(s.enable)

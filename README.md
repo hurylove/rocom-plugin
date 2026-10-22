@@ -59,6 +59,10 @@ git clone <本仓库地址> rocom-plugin
 
 `config.yaml` 已在 `.gitignore` 中忽略——它含有你的群号与订阅关键词，不应提交。
 
+### 图片清晰度
+
+商人图和帮助图使用 PNG 无损输出，默认 `renderScale: 200`，即按两倍像素渲染（宽 1440 像素）。可在锅巴面板的「渲染缩放」中调整，或在 `config/config.yaml` 中设置 `renderScale`（50–200）。已有用户配置中的值仍会优先保留。
+
 ## 目录结构
 
 ```
