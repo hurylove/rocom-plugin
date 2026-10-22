@@ -18,10 +18,15 @@ export class RocomHelp extends BaseApp {
     if (img) return e.reply(img)
 
     log.w('帮助图渲染失败，退回文字')
+    const data = helpData()
     const lines = []
-    for (const sec of helpData().sections) {
-      lines.push(`【${sec.title}】`)
-      for (const item of sec.items) lines.push('· ' + item.replace(/<[^>]+>/g, ''))
+    for (const g of data.groups) {
+      lines.push(`【${g.group}】`)
+      for (const item of g.list) {
+        const desc = item.desc.replace(/<[^>]+>/g, '')
+        lines.push(`· ${item.titles.join(' / ')}${desc ? '：' + desc : ''}`)
+      }
+      for (const note of g.notes) lines.push('· ' + note.replace(/<[^>]+>/g, ''))
     }
     return e.reply(lines.join('\n'))
   }

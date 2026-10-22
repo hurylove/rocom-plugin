@@ -12,84 +12,147 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { -webkit-font-smoothing: antialiased; }
   body {
-    width: 720px;
+    width: 830px;
     transform: scale({{renderScale}});
     transform-origin: top left;
-    padding: 30px 26px 26px;
+    padding: 16px;
     font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #efe8da;
-    color: #2b2823;
+    background: #eef1f6;
+    color: #2c3444;
   }
 
-  .header {
-    display: flex; align-items: flex-end; justify-content: space-between;
-    padding: 0 2px 18px;
-    border-bottom: 2px solid #d8cfbd;
-    margin-bottom: 18px;
+  .wrap {
+    padding: 22px 22px 18px;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(60, 80, 110, .10);
   }
-  .title { font-size: 25px; font-weight: 700; letter-spacing: 1px; color: #3a3428; }
+
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e6ebf2;
+  }
+  .title { font-size: 26px; font-weight: 700; letter-spacing: .5px; color: #2c3444; }
   .title small {
-    display: block; font-size: 12px; font-weight: 400; color: #929086;
-    margin-top: 7px; letter-spacing: .4px;
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: .3px;
+    color: #8d97a8;
   }
   .badge {
-    display: inline-block; font-size: 13px; font-weight: 700; color: #7a5a20;
-    background: #ffe6b0; border: 1px solid #f0c96a;
-    padding: 3px 12px; border-radius: 20px;
-  }
-
-  .section { margin-bottom: 14px; }
-  .section:last-of-type { margin-bottom: 0; }
-  .sec-head {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 15px; font-weight: 700; color: #7a5a20;
-    margin: 0 2px 10px;
-  }
-  .sec-head::before {
-    content: ""; width: 4px; height: 15px; border-radius: 2px;
-    background: #f0c96a;
-  }
-
-  .items { display: flex; flex-direction: column; gap: 8px; }
-  .item {
-    padding: 11px 14px;
-    background: #fbf7ef;
-    border: 1px solid #e4dbc9;
-    border-radius: 10px;
+    padding: 4px 12px;
+    border: 1px solid #cfe1f5;
+    border-radius: 20px;
+    background: #e8f1fb;
     font-size: 13px;
-    line-height: 1.65;
-    color: #5a5244;
+    font-weight: 700;
+    color: #3d6fa8;
   }
+
+  .group { margin-top: 18px; }
+  .group-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #33506f;
+  }
+  .group-name::before {
+    width: 4px;
+    height: 16px;
+    border-radius: 2px;
+    background: #5b8fc9;
+    content: "";
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .cell {
+    padding: 10px 12px;
+    border: 1px solid #e6ebf2;
+    border-radius: 10px;
+    background: #f7f9fc;
+  }
+  .cell-title { margin-bottom: 5px; line-height: 1.5; word-break: break-all; }
+  .cell-title .cmd + .cmd { margin-left: 4px; }
+  .cell-desc { font-size: 12.5px; line-height: 1.6; color: #66707f; }
+
   .cmd {
-    font-size: 13px; font-weight: 700; color: #b5532a;
-    background: #fbe4d6; border: 1px solid #f2cdb8;
-    padding: 1px 7px; border-radius: 5px;
-    white-space: nowrap;
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid #f2cdb8;
+    border-radius: 5px;
+    background: #fbe4d6;
+    font-size: 13px;
+    font-weight: 700;
+    color: #b5532a;
   }
   .strong { font-weight: 700; color: #8a6a1e; }
 
-  .footer { margin-top: 16px; font-size: 12px; color: #a49b89; text-align: center; }
+  .notes { display: flex; flex-direction: column; gap: 5px; margin-top: 9px; }
+  .note {
+    position: relative;
+    padding-left: 13px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #78838f;
+  }
+  .note::before {
+    position: absolute;
+    top: .68em;
+    left: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #b9c4d2;
+    content: "";
+  }
+
+  .footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e6ebf2;
+    font-size: 12px;
+    color: #a0a9b6;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
-  <div class="header">
-    <div class="title">{{title}}
-      <small>{{subtitle}}</small>
+  <div class="wrap">
+    <div class="head">
+      <div class="title">{{title}}<small>{{subtitle}}</small></div>
+      <span class="badge">共 {{total}} 条指令</span>
     </div>
-    <span class="badge">共 {{sections.length}} 个分类</span>
-  </div>
 
-  {{each sections sec}}
-  <div class="section">
-    <div class="sec-head">{{sec.title}}</div>
-    <div class="items">
-      {{each sec.items line}}
-      <div class="item">{{@line}}</div>
-      {{/each}}
+    {{each groups g}}
+    <div class="group">
+      <div class="group-name">{{g.group}}</div>
+      {{if g.list.length}}
+      <div class="grid">
+        {{each g.list item}}
+        <div class="cell">
+          <div class="cell-title">{{each item.titles t}}<span class="cmd">{{t}}</span>{{/each}}</div>
+          {{if item.desc}}<div class="cell-desc">{{@item.desc}}</div>{{/if}}
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+      {{if g.notes.length}}
+      <div class="notes">
+        {{each g.notes note}}<div class="note">{{@note}}</div>{{/each}}
+      </div>
+      {{/if}}
     </div>
-  </div>
-  {{/each}}
+    {{/each}}
 
-  <div class="footer">{{footer}}</div>
+    <div class="footer">{{footer}}</div>
+  </div>
 </body>
 </html>
