@@ -49,6 +49,6 @@ export function helpData() {
     title: '指令帮助',
     subtitle: '洛克王国世界 · rocom-plugin',
     sections: parseHelp(fs.readFileSync(helpMarkdown, 'utf-8')),
-    footer: '数据来源 db.18183.com'
+    footer: 'rocom-plugin'
   }
 }
