@@ -2,24 +2,34 @@ import Puppeteer from '../../../lib/puppeteer/puppeteer.js'
 import { templateDir } from './paths.js'
 import { config, getBot, isGroupAllowed } from './runtime.js'
 
+/**
+ * 基类。
+ * 注意：本模块在 index.js 的动态 import 里被加载，此时 Yunzai 已把 `plugin` 注入 globalThis，
+ * 因此可以直接 extends plugin。
+ */
 export class BaseApp extends plugin {
   constructor({ name, dsc, rule, priority = 5000, task = [] }) {
-    // 不指定 event：Yunzai 的 filtEvent 对空 event 直接放行，
-    // 由 rule.reg 做精确匹配，避免 event 拼接不一致导致收不到消息
-    super({ name: `rocom-${name}`, dsc, priority, rule })
+    super({
+      name: `rocom-${name}`,
+      dsc,
+      priority,
+      rule,
+      // Yunzai filtEvent: eventMap.message = [post_type, message_type, sub_type]
+      // event='message' 时 mappedEvent.join('.') === e.post_type === 'message'，群聊私聊都命中。
+      // 留空会让 filtEvent 直接 return false，导致命令永远收不到。
+      event: 'message'
+    })
     this.config = config
     this.Bot = getBot()
-    // Yunzai 加载器会遍历 this.task[].cron，必须始终是数组
+    // Yunzai 加载器会遍历 this.task[].cron，必须是数组
     this.task = task
   }
 
-  /** 群开关校验，未放行的群静默退出 */
   async checkGroup(e) {
     if (e.isGroup && !isGroupAllowed(e.group_id)) return false
     return true
   }
 
-  /** 参数解析：去掉命令前缀后按空白切分 */
   args(e, prefixRe) {
     return String(e.msg || '')
       .replace(prefixRe, '')
@@ -28,7 +38,6 @@ export class BaseApp extends plugin {
       .filter(Boolean)
   }
 
-  /** 套 html 模板截图，失败返回 null */
   async render(name, data = {}, saveId = name) {
     try {
       return await Puppeteer.screenshot(`rocom_${saveId}`, {
