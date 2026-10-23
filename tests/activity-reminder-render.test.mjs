@@ -208,11 +208,12 @@ test('reminder schema uses only existing components and exposes exactly the shar
   assert.ok(schemas.some((entry) => entry.field === 'activityReminderGroups'))
 })
 
-test('help remains nine sections with command cards separate from notes; README matches permissions and protection', async () => {
+test('help remains ten sections with command cards separate from notes; README matches permissions and protection', async () => {
   const { parseHelp } = await import('../components/help.js')
   const markdown = source('resources/help/help.md')
   const groups = parseHelp(markdown)
-  assert.equal(groups.length, 9)
+  assert.equal(groups.length, 10)
+  assert.ok(groups.some((entry) => entry.group === '精灵图鉴'))
   assert.ok(groups.length <= 12)
   const reminder = groups.find((entry) => entry.group === '活动到期提醒')
   assert.equal(reminder.list.length, 5)

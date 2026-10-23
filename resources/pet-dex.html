@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "AlimamaFangYuan";
+    src: url("{{fontUrl}}") format("truetype");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    width: 830px;
+    transform: scale({{renderScale}});
+    transform-origin: top left;
+    padding: 16px;
+    font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #efe8da;
+    color: #2b2823;
+  }
+
+  .wrap {
+    padding: 22px 22px 18px;
+    border: 1px solid #ddd2bd;
+    border-radius: 16px;
+    background: #f7f1e4;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #d8cfbd;
+  }
+  .title { font-size: 26px; font-weight: 700; color: #3a3428; }
+  .title small {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 400;
+    color: #929086;
+  }
+  .badge {
+    padding: 4px 12px;
+    border: 1px solid #f0c96a;
+    border-radius: 20px;
+    background: #ffe6b0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #7a5a20;
+  }
+
+  .group { margin-top: 18px; }
+  .group-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #7a5a20;
+  }
+  .group-name::before {
+    width: 4px;
+    height: 16px;
+    border-radius: 2px;
+    background: #f0c96a;
+    content: "";
+  }
+
+  .arts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .art {
+    border: 1px solid #e4dbc9;
+    border-radius: 10px;
+    background: #fbf7ef;
+    text-align: center;
+  }
+  .art .label {
+    display: inline-block;
+    margin: 8px 0 4px;
+    padding: 1px 10px;
+    border: 1px solid #f2cdb8;
+    border-radius: 12px;
+    background: #fbe4d6;
+    font-size: 12px;
+    font-weight: 700;
+    color: #b5532a;
+  }
+  .art .label.shiny { border-color: #f0c96a; background: #ffe6b0; color: #7a5a20; }
+  .art img { max-width: 100%; height: 260px; object-fit: contain; display: block; margin: 0 auto 8px; }
+  .art .placeholder { height: 260px; line-height: 260px; color: #c8bda4; font-size: 13px; }
+
+  .identity { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 9px; }
+  .kv { padding: 10px 12px; border: 1px solid #e4dbc9; border-radius: 10px; background: #fbf7ef; }
+  .kv .k { display: block; margin-bottom: 4px; font-size: 12.5px; color: #857c68; }
+  .kv .v { font-size: 14px; font-weight: 700; color: #3a3428; word-break: break-all; }
+
+  .stats { display: flex; flex-direction: column; gap: 8px; }
+  .stat { display: grid; grid-template-columns: 64px 1fr 48px; align-items: center; gap: 10px; }
+  .stat .name { font-size: 13.5px; font-weight: 700; color: #6d6553; }
+  .stat .bar { height: 12px; border-radius: 6px; background: #ece4d2; overflow: hidden; }
+  .stat .fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #f0c96a, #e8a94e); }
+  .stat .val { font-size: 14px; font-weight: 700; color: #3a3428; text-align: right; }
+
+  .pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+
+  .branch { padding: 10px 12px; border: 1px solid #e4dbc9; border-radius: 10px; background: #fbf7ef; margin-bottom: 8px; }
+  .branch .bname { font-size: 13px; font-weight: 700; color: #7a5a20; margin-bottom: 6px; }
+  .chain { font-size: 13.5px; color: #6d6553; line-height: 1.8; }
+  .chain .node.cur { font-weight: 700; color: #b5532a; }
+  .chain .arrow { color: #c8bda4; margin: 0 4px; }
+
+  .skills { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  .skill {
+    padding: 9px 12px;
+    border: 1px solid #e4dbc9;
+    border-radius: 10px;
+    background: #fbf7ef;
+  }
+  .skill .row1 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .skill .sname { font-size: 14px; font-weight: 700; color: #3a3428; }
+  .skill .tag {
+    padding: 0 6px;
+    border: 1px solid #f2cdb8;
+    border-radius: 5px;
+    background: #fbe4d6;
+    font-size: 11.5px;
+    color: #b5532a;
+  }
+  .skill .tag.gold { border-color: #f0c96a; background: #ffe6b0; color: #7a5a20; }
+  .skill .lv { margin-left: auto; font-size: 11.5px; color: #a49b89; }
+  .skill .meta { font-size: 12px; color: #857c68; margin-bottom: 3px; }
+  .skill .desc { font-size: 12px; line-height: 1.6; color: #6d6553; word-break: break-all; }
+
+  .footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #ddd2bd;
+    font-size: 12px;
+    color: #a49b89;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="title">{{title}}<small>{{subtitle}}</small></div>
+      <span class="badge">No.{{number}}</span>
+    </div>
+
+    <div class="group">
+      <div class="group-name">立绘{{if hasShiny}}（普通 / 异色）{{/if}}</div>
+      <div class="arts">
+        {{if artShiny}}
+        <div class="art">
+          <span class="label{{if shinyFirst}} shiny{{/if}}">{{if shinyFirst}}异色{{else}}普通{{/if}}</span>
+          {{if shinyFirst}}{{if artShiny}}<img src="{{artShiny}}" alt="异色形态">{{/if}}{{else}}{{if artNormal}}<img src="{{artNormal}}" alt="普通形态">{{/if}}{{/if}}
+        </div>
+        <div class="art">
+          <span class="label{{if !shinyFirst}} shiny{{/if}}">{{if shinyFirst}}普通{{else}}异色{{/if}}</span>
+          {{if shinyFirst}}{{if artNormal}}<img src="{{artNormal}}" alt="普通形态">{{/if}}{{else}}{{if artShiny}}<img src="{{artShiny}}" alt="异色形态">{{/if}}{{/if}}
+        </div>
+        {{else}}
+        <div class="art" style="grid-column: 1 / 3;">
+          <span class="label">普通形态</span>
+          {{if artNormal}}<img src="{{artNormal}}" alt="普通形态">{{else}}<div class="placeholder">图片暂缺</div>{{/if}}
+        </div>
+        {{/if}}
+      </div>
+      <div class="identity">
+        <div class="kv"><span class="k">属性</span><span class="v">{{types}}</span></div>
+        <div class="kv"><span class="k">形态</span><span class="v">{{if form}}{{form}}{{else}}基础形态{{/if}}</span></div>
+        <div class="kv"><span class="k">赛季</span><span class="v">{{if season}}{{season}}{{else}}常驻{{/if}}</span></div>
+        <div class="kv"><span class="k">异色</span><span class="v">{{if hasShiny}}有{{else}}无{{/if}}</span></div>
+      </div>
+    </div>
+
+    {{if stats.length}}
+    <div class="group">
+      <div class="group-name">种族值</div>
+      <div class="stats">
+        {{each stats s}}
+        <div class="stat">
+          <span class="name">{{s.name}}</span>
+          <div class="bar"><div class="fill" style="width:{{s.width}}%"></div></div>
+          <span class="val">{{s.value}}</span>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+
+    {{if pills.length}}
+    <div class="group">
+      <div class="group-name">基础信息</div>
+      <div class="pills">
+        {{each pills p}}
+        <div class="kv"><span class="k">{{p.key}}</span><span class="v">{{p.value}}</span></div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+
+    {{if branches.length}}
+    <div class="group">
+      <div class="group-name">进化链</div>
+      {{each branches b}}
+      <div class="branch">
+        <div class="bname">{{b.name}}</div>
+        <div class="chain">
+          {{each b.nodes n i}}{{if i > 0}}<span class="arrow">→{{if b.conns && b.conns[i-1]}} {{b.conns[i-1]}}{{/if}}</span>{{/if}}<span class="node{{if n.current}} cur{{/if}}">{{n.name}}{{if n.current}}（当前）{{/if}}</span>{{if n.roman}} <span style="color:#c8bda4">{{n.roman}}</span>{{/if}}{{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    {{if skills.length}}
+    <div class="group">
+      <div class="group-name">技能表（{{skills.length}}）</div>
+      <div class="skills">
+        {{each skills s}}
+        <div class="skill">
+          <div class="row1">
+            <span class="sname">{{s.name}}</span>
+            <span class="tag">{{s.type}}</span>
+            <span class="tag gold">{{s.cat}}</span>
+            {{if s.level}}<span class="lv">LV{{s.level}}</span>{{/if}}
+          </div>
+          <div class="meta">{{if s.power}}威力 {{s.power}}{{else}}—{{/if}} · {{if s.cost}}能耗 {{s.cost}}{{else}}—{{/if}}</div>
+          <div class="desc">{{s.desc}}</div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="footer">{{footer}}</div>
+  </div>
+</body>
+</html>
