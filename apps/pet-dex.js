@@ -69,7 +69,8 @@ export class RocomPetDex extends BaseApp {
     const head = sameName
       ? `${candidates[0].name} 有 ${found.total || candidates.length} 个形态，请指定其中一个：`
       : `匹配到 ${found.total || candidates.length} 条，请用完整名称：`
-    const lines = candidates.map((p) => `· #精灵 ${displayName(p)}`)
+    // 每行就是一条可直接复制发送的完整指令，不加项目符号
+    const lines = candidates.map((p) => `#精灵 ${displayName(p)}`)
     return e.reply([head, ...lines].join('\n'))
   }
 
