@@ -155,3 +155,24 @@ test('this.args 前缀正则能剥掉指令前缀（防双反斜杠转义回归�
   assert.ok(found && found.id, 'keyword ' + keyword + ' must resolve')
   assert.equal(found.formLabel, '春天的样子')
 })
+
+test('回复拼接不含字面反斜杠 n（换行必须是真实换行）', () => {
+  const BS = String.fromCharCode(92)
+  const NL = String.fromCharCode(10)
+  const bad = "join('" + BS + BS + "n')"
+  const good = "join('" + BS + "n')"
+  const appDir = new URL('../apps/', import.meta.url)
+  let checked = 0
+  for (const f of fs.readdirSync(appDir)) {
+    if (!f.endsWith('.js')) continue
+    const text = fs.readFileSync(new URL(f, appDir), 'utf-8')
+    assert.ok(!text.includes(bad), f + ' 存在字面反斜杠 n 拼接，回复会原样显示')
+    checked++
+  }
+  assert.ok(checked >= 8, '应扫描全部 app，实际 ' + checked)
+  const pet = fs.readFileSync(new URL('../apps/pet-dex.js', import.meta.url), 'utf-8')
+  assert.equal(pet.split(good).length - 1, 4, 'pet-dex.js 应有 4 处真实换行拼接')
+  const text = ['雪绒鸟 有 4 个形态，请指定其中一个：', '· #精灵 雪绒鸟（春天的样子）', '· #精灵 雪绒鸟（本来的样子）'].join(NL)
+  assert.equal(text.split(NL).length, 3, '拼接结果必须是多行')
+  assert.ok(!text.includes(BS), '拼接结果不应含反斜杠')
+})

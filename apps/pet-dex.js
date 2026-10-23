@@ -26,7 +26,7 @@ export class RocomPetDex extends BaseApp {
       '· #精灵编号 <编号>：按图鉴编号查询',
       '同名多形态请用「名称（形态）」指定，例如：#精灵 雪绒鸟（春天的样子）',
       '首次查询会从 Wiki 抓取并缓存，之后秒出。'
-    ].join('\\n'))
+    ].join('\n'))
   }
 
   async search(e) {
@@ -41,7 +41,7 @@ export class RocomPetDex extends BaseApp {
       ...lines.slice(0, 30),
       pets.length > 30 ? `（仅显示前 30 条，共 ${pets.length} 条）` : '',
       '查看详情：#精灵 <名称>'
-    ].filter(Boolean).join('\\n'))
+    ].filter(Boolean).join('\n'))
   }
 
   async byNumber(e) {
@@ -70,7 +70,7 @@ export class RocomPetDex extends BaseApp {
       ? `${candidates[0].name} 有 ${found.total || candidates.length} 个形态，请指定其中一个：`
       : `匹配到 ${found.total || candidates.length} 条，请用完整名称：`
     const lines = candidates.map((p) => `· #精灵 ${displayName(p)}`)
-    return e.reply([head, ...lines].join('\\n'))
+    return e.reply([head, ...lines].join('\n'))
   }
 
   async renderDetail(e, pet) {
@@ -102,6 +102,6 @@ export class RocomPetDex extends BaseApp {
     const skills = detail.skills || []
     if (skills.length) lines.push(`技能 ${skills.length} 个：${skills.map((s) => s.name).join('、')}`)
     lines.push('（图片渲染失败，文字兜底）')
-    return lines.join('\\n')
+    return lines.join('\n')
   }
 }
