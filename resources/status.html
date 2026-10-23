@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "AlimamaFangYuan";
+    src: url("{{fontUrl}}") format("truetype");
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    width: 830px;
+    transform: scale({{renderScale}});
+    transform-origin: top left;
+    padding: 16px;
+    font-family: "AlimamaFangYuan", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #efe8da;
+    color: #2b2823;
+  }
+
+  .wrap {
+    padding: 22px 22px 18px;
+    border: 1px solid #ddd2bd;
+    border-radius: 16px;
+    background: #f7f1e4;
+  }
+
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #d8cfbd;
+  }
+  .title { font-size: 26px; font-weight: 700; letter-spacing: .5px; color: #3a3428; }
+  .title small {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: .3px;
+    color: #929086;
+  }
+  .badge {
+    padding: 4px 12px;
+    border: 1px solid #f0c96a;
+    border-radius: 20px;
+    background: #ffe6b0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #7a5a20;
+  }
+
+  .group { margin-top: 18px; }
+  .group-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #7a5a20;
+  }
+  .group-name::before {
+    width: 4px;
+    height: 16px;
+    border-radius: 2px;
+    background: #f0c96a;
+    content: "";
+  }
+
+  .kv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  .cell {
+    padding: 10px 12px;
+    border: 1px solid #e4dbc9;
+    border-radius: 10px;
+    background: #fbf7ef;
+  }
+  .cell .k {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #857c68;
+  }
+  .cell .v {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
+    word-break: break-all;
+    color: #3a3428;
+  }
+  .cell .v.warn { color: #b5532a; }
+
+  .footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #ddd2bd;
+    font-size: 12px;
+    color: #a49b89;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="title">{{title}}<small>{{subtitle}}</small></div>
+      <span class="badge">{{gitShort}}</span>
+    </div>
+
+    {{each sections s}}
+    <div class="group">
+      <div class="group-name">{{s.name}}</div>
+      <div class="kv">
+        {{each s.items item}}
+        <div class="cell">
+          <span class="k">{{item.k}}</span>
+          <span class="v{{if item.warn}} warn{{/if}}">{{item.v}}</span>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/each}}
+
+    <div class="footer">{{footer}}</div>
+  </div>
+</body>
+</html>
