@@ -161,12 +161,12 @@
       <div class="arts">
         {{if artShiny}}
         <div class="art">
-          <span class="label{{if shinyFirst}} shiny{{/if}}">{{if shinyFirst}}异色{{else}}普通{{/if}}</span>
-          {{if shinyFirst}}{{if artShiny}}<img src="{{artShiny}}" alt="异色形态">{{/if}}{{else}}{{if artNormal}}<img src="{{artNormal}}" alt="普通形态">{{/if}}{{/if}}
+          <span class="label">普通形态</span>
+          {{if artNormal}}<img src="{{artNormal}}" alt="普通形态">{{else}}<div class="placeholder">图片暂缺</div>{{/if}}
         </div>
         <div class="art">
-          <span class="label{{if !shinyFirst}} shiny{{/if}}">{{if shinyFirst}}普通{{else}}异色{{/if}}</span>
-          {{if shinyFirst}}{{if artNormal}}<img src="{{artNormal}}" alt="普通形态">{{/if}}{{else}}{{if artShiny}}<img src="{{artShiny}}" alt="异色形态">{{/if}}{{/if}}
+          <span class="label shiny">异色形态</span>
+          <img src="{{artShiny}}" alt="异色形态">
         </div>
         {{else}}
         <div class="art" style="grid-column: 1 / 3;">

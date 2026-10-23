@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { parsePetDetail } from '../models/pet-dex.js'
+import { parsePetDetail, displayName, findPet, findPetByNumber, searchPets } from '../models/pet-dex.js'
 
 const dimo = fs.readFileSync(new URL('./fixtures/pet-dimo.html', import.meta.url), 'utf-8')
 
@@ -48,11 +48,89 @@ test('索引数据完整：633 只，字段齐全', () => {
   assert.equal(new Set(pets.map((p) => p.number)).size, 468)
 })
 
-test('apps/pet-dex.js 结构符合加载器要求', () => {
+test('apps/pet-dex.js 规则集完整，且能匹配真实指令', () => {
   const source = fs.readFileSync(new URL('../apps/pet-dex.js', import.meta.url), 'utf-8')
   assert.ok(source.includes('extends BaseApp'))
-  assert.ok(source.includes("reg: '^#?精灵\\s*(.+)$'"))
-  assert.ok(source.includes("reg: '^#?精灵搜索\\s*(.+)$'"))
-  assert.ok(source.includes("reg: '^#?精灵异色\\s*(.+)$'"))
-  assert.ok(source.includes("reg: '^#?精灵编号\\s*(.+)$'"))
+  const fncs = [...source.matchAll(/fnc: '([^']+)'/g)].map((m) => m[1])
+  assert.deepEqual(fncs, ['search', 'byNumber', 'usage', 'detail'])
+  // 按 JS 字符串规则还原文件里的正则字面量，再用真实指令验证路由
+  const rules = [...source.matchAll(/reg: '([^']+)', fnc: '([^']+)'/g)].map((m) => ({
+    re: new RegExp(JSON.parse('"' + m[1] + '"')),
+    fnc: m[2]
+  }))
+  assert.equal(rules.length, 4)
+  const dispatch = (msg) => (rules.find((r) => r.re.test(msg)) || {}).fnc
+  assert.equal(dispatch('#精灵搜索 雪绒鸟'), 'search')
+  assert.equal(dispatch('#精灵编号 018'), 'byNumber')
+  // usage 规则是 ^#?精灵图鉴?$ —— 「鉴」可选，所以 #精灵图 同样进用法说明
+  assert.equal(dispatch('#精灵图鉴'), 'usage')
+  assert.equal(dispatch('#精灵图'), 'usage')
+  // 只带空白参数时进详情处理，由 detail() 回退到用法说明
+  assert.equal(dispatch('#精灵 '), 'detail')
+  assert.equal(dispatch('#精灵 迪莫'), 'detail')
+  assert.equal(dispatch('#精灵 雪绒鸟（春天的样子）'), 'detail')
+  // 精灵异色 已删除，不再有专属处理函数
+  assert.equal(dispatch('#精灵异色 迪莫'), 'detail')
+})
+
+test('#精灵异色 已移除，形态由全名区分', () => {
+  const source = fs.readFileSync(new URL('../apps/pet-dex.js', import.meta.url), 'utf-8')
+  assert.ok(!source.includes('精灵异色'), 'command still present')
+  assert.ok(!source.includes('shinyFirst'), 'shinyFirst still present')
+  assert.ok(source.includes('displayName'), 'app must show form in names')
+})
+
+test('同名多形态：全名可精确定位，简称返回候选', () => {
+  // 雪绒鸟：4 个形态，编号同为 018
+  const byName = findPet('雪绒鸟')
+  assert.ok(byName.candidates, 'bare name should be ambiguous')
+  assert.equal(byName.total, 4)
+  assert.deepEqual(byName.candidates.map((p) => displayName(p)), [
+    '雪绒鸟（春天的样子）',
+    '雪绒鸟（夏天的样子）',
+    '雪绒鸟（秋天的样子）',
+    '雪绒鸟（本来的样子）'
+  ])
+  // 全名精确命中
+  const spring = findPet('雪绒鸟（春天的样子）')
+  assert.ok(spring && spring.id, 'full name must resolve')
+  assert.equal(spring.formLabel, '春天的样子')
+  assert.equal(spring.page, '/nrc/%E9%9B%AA%E7%BB%92%E9%B8%9F%EF%BC%88%E6%98%A5%E5%A4%A9%E7%9A%84%E6%A0%B7%E5%AD%90%EF%BC%89')
+  // 去标点/省略括号的口语写法
+  assert.equal(findPet('雪绒鸟春天').id, spring.id, 'compact form')
+  assert.equal(findPet('雪绒鸟(春天的样子)').id, spring.id, 'half-width parens')
+  assert.equal(findPet('雪绒鸟 本来的样子').id, findPet('雪绒鸟（本来的样子）').id)
+  // 单形态精灵仍按名称直达
+  assert.equal(displayName(findPet('迪莫')), '迪莫')
+  // 无命中返回 null，而不是空候选（避免误报「对应多只精灵」）
+  assert.equal(findPet('不存在的精灵xyz'), null)
+  assert.equal(findPet(''), null)
+})
+
+test('搜索结果与索引整体：展示名全局唯一，同名组靠形态区分', () => {
+  const pets = JSON.parse(fs.readFileSync(new URL('../models/pet-dex-data.json', import.meta.url), 'utf-8'))
+  const names = pets.map(displayName)
+  assert.equal(new Set(names).size, names.length, 'displayName must be unique across the index')
+  // 每个同名组都能靠形态标签区分开
+  const byName = new Map()
+  for (const p of pets) {
+    if (!byName.has(p.name)) byName.set(p.name, [])
+    byName.get(p.name).push(p)
+  }
+  const dups = [...byName.values()].filter((group) => group.length > 1)
+  assert.ok(dups.length >= 71, 'expected many multi-form groups, got ' + dups.length)
+  for (const group of dups) {
+    assert.ok(group.every((p) => p.formLabel), 'multi-form entry missing formLabel: ' + group[0].name)
+    assert.equal(new Set(group.map(displayName)).size, group.length, 'forms not distinguishable: ' + group[0].name)
+  }
+  // 搜索结果携带形态，用户能分辨同名条目
+  const hits = searchPets('雪绒鸟')
+  assert.equal(hits.length, 4)
+  assert.ok(hits.every((p) => p.formLabel))
+  // 同级按编号、再按形态名（中文拼音）排序
+  assert.deepEqual(hits.map(displayName), ['雪绒鸟（本来的样子）', '雪绒鸟（春天的样子）', '雪绒鸟（秋天的样子）', '雪绒鸟（夏天的样子）'])
+  // 编号定位同样返回全部形态
+  const byNum = findPetByNumber('018')
+  assert.equal(byNum.total, 4)
+  assert.ok(byNum.candidates.every((p) => p.name === '雪绒鸟'))
 })

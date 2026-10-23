@@ -14,33 +14,57 @@ const dataFile = new URL('./pet-dex-data.json', import.meta.url)
 const PET_INDEX = JSON.parse(fs.readFileSync(dataFile, 'utf-8'))
 
 const norm = (s) => String(s ?? '').trim().toLowerCase()
+// 去标点匹配：让「雪绒鸟春天」也能命中「雪绒鸟（春天的样子）」
+const compact = (s) => norm(s).replace(/[（）()\[\]【】\s·、,，.。\-—_:：]/g, '')
 
-/** 名称搜索：完全匹配 > 前缀 > 包含；返回按编号排序的列表。 */
+/** 展示名：同名多形态时用「名称（形态）」区分，与 Wiki 详情页标题一致。 */
+export function displayName(pet) {
+  if (!pet) return ''
+  return pet.formLabel ? `${pet.name}（${pet.formLabel}）` : pet.name
+}
+
+const matchKeys = (pet) => [norm(displayName(pet)), norm(pet.name), compact(pet.name + ' ' + (pet.formLabel || ''))]
+
+/** 匹配分级：0 完全命中、1 前缀、2 包含；-1 不匹配。全名与基础名都参与。 */
+function matchScore(pet, kw) {
+  const keys = matchKeys(pet)
+  const needles = [...new Set([norm(kw), compact(kw)])].filter(Boolean)
+  let best = -1
+  for (const needle of needles) {
+    for (const key of keys) {
+      if (!key) continue
+      const score = key === needle ? 0 : key.startsWith(needle) ? 1 : key.includes(needle) ? 2 : -1
+      if (score >= 0 && (best < 0 || score < best)) best = score
+    }
+  }
+  return best
+}
+
+/** 名称搜索：完全匹配 > 前缀 > 包含；同级按编号、再按形态名排序。 */
 export function searchPets(keyword, limit = 40) {
   const kw = norm(keyword)
   if (!kw) return []
   const scored = []
   for (const pet of PET_INDEX) {
-    const name = norm(pet.name)
-    let score = -1
-    if (name === kw) score = 0
-    else if (name.startsWith(kw)) score = 1
-    else if (name.includes(kw)) score = 2
+    const score = matchScore(pet, kw)
     if (score >= 0) scored.push({ pet, score })
   }
-  return scored.sort((a, b) => a.score - b.score || a.pet.number.localeCompare(b.pet.number)).slice(0, limit).map((s) => s.pet)
+  return scored
+    .sort((a, b) => a.score - b.score || a.pet.number.localeCompare(b.pet.number) || displayName(a.pet).localeCompare(displayName(b.pet), 'zh'))
+    .slice(0, limit)
+    .map((s) => s.pet)
 }
 
-/** 精确定位一只精灵：完全命中或唯一前缀/包含命中；多个候选返回 { candidates }。 */
+/** 精确定位：取最优匹配级别，该级唯一即命中，多条返回候选，无命中返回 null。 */
 export function findPet(keyword) {
   const kw = norm(keyword)
   if (!kw) return null
-  const exact = PET_INDEX.filter((p) => norm(p.name) === kw)
-  if (exact.length === 1) return exact[0]
-  const prefix = PET_INDEX.filter((p) => norm(p.name).startsWith(kw))
-  if (prefix.length === 1) return prefix[0]
-  const candidates = (exact.length ? exact : prefix.length ? prefix : PET_INDEX.filter((p) => norm(p.name).includes(kw))).slice(0, 10)
-  return { candidates }
+  const scored = PET_INDEX.map((pet) => ({ pet, score: matchScore(pet, kw) })).filter((x) => x.score >= 0)
+  if (!scored.length) return null
+  const best = Math.min(...scored.map((x) => x.score))
+  const hits = scored.filter((x) => x.score === best).map((x) => x.pet)
+  if (hits.length === 1) return hits[0]
+  return { candidates: hits.slice(0, 10), total: hits.length }
 }
 
 /** 编号定位：同编号多条进化/形态时返回候选。 */
@@ -48,7 +72,7 @@ export function findPetByNumber(number) {
   const num = String(number ?? '').trim().padStart(3, '0')
   const hits = PET_INDEX.filter((p) => p.number === num)
   if (hits.length === 1) return hits[0]
-  return hits.length ? { candidates: hits.slice(0, 10) } : null
+  return hits.length ? { candidates: hits.slice(0, 10), total: hits.length } : null
 }
 
 export function petIndexSize() {
@@ -200,14 +224,14 @@ export async function getPetDetail(pet, { force = false, fetcher = null, now = n
 }
 
 /** 组装渲染数据：索引 + 详情 + 双立绘本地化。 */
-export async function buildPetDexData(pet, detail, { shinyFirst = false } = {}) {
+export async function buildPetDexData(pet, detail) {
   const [artNormal, artShiny] = await Promise.all([
     cachedImage(pet.artNormal),
     pet.artShiny ? cachedImage(pet.artShiny) : Promise.resolve('')
   ])
   const statMax = Math.max(150, ...((detail && detail.stats) || []).map((s) => s.value))
   return {
-    title: pet.name,
+    title: displayName(pet),
     subtitle: 'rocom-plugin 精灵图鉴',
     number: pet.number,
     types: pet.types,
@@ -216,7 +240,6 @@ export async function buildPetDexData(pet, detail, { shinyFirst = false } = {}) 
     hasShiny: Boolean(pet.artShiny),
     artNormal,
     artShiny,
-    shinyFirst,
     stats: ((detail && detail.stats) || []).map((s) => ({ ...s, width: Math.round((s.value / statMax) * 100) })),
     pills: (detail && detail.pills) || [],
     branches: (detail && detail.branches) || [],
