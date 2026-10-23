@@ -9,7 +9,7 @@ const userPath = configDir + 'config.yaml'
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
 
 /** 默认配置内联兜底，default_config.yaml 丢失时也能启动 */
-const DEFAULT_CONFIG = {
+export const DEFAULT_CONFIG = {
   groupWhite: [],
   groupBlack: [],
   renderScale: 200,
@@ -21,6 +21,13 @@ const DEFAULT_CONFIG = {
     delaySeconds: 120,
     retry: 5,
     retryIntervalSeconds: 30
+  },
+  activityReminder: {
+    enable: true,
+    groups: [],
+    atAllGroups: [],
+    hoursBefore: [24, 6],
+    cacheMaxAgeHours: 48
   }
 }
 
@@ -61,16 +68,26 @@ function merge(base, over) {
   return out
 }
 
+const normalizeGroupIds = (value) => Array.isArray(value)
+  ? [...new Set(value.map((id) => String(id ?? '').trim()).filter(Boolean))]
+  : []
+
+const validReminderHours = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) && number >= 1 && number <= 168
+}
+
 /** 按字段类型修正，防止手写 yaml 写错类型 */
-function normalize(conf) {
-  conf.groupWhite = Array.isArray(conf.groupWhite) ? conf.groupWhite.map(String) : []
-  conf.groupBlack = Array.isArray(conf.groupBlack) ? conf.groupBlack.map(String) : []
+export function normalizeConfig(conf) {
+  conf = isObj(conf) ? conf : {}
+  conf.groupWhite = normalizeGroupIds(conf.groupWhite)
+  conf.groupBlack = normalizeGroupIds(conf.groupBlack)
   const renderScale = Number(conf.renderScale)
   conf.renderScale = Number.isFinite(renderScale) && renderScale > 0
     ? Math.min(200, Math.max(50, renderScale))
     : 200
 
-  const s = conf.subscribe || (conf.subscribe = {})
+  const s = isObj(conf.subscribe) ? conf.subscribe : (conf.subscribe = {})
   s.enable = Boolean(s.enable)
   s.atAll = s.atAll !== false
   s.groups = Array.isArray(s.groups) ? s.groups.map(String).filter(Boolean) : []
@@ -78,13 +95,34 @@ function normalize(conf) {
   s.delaySeconds = Number.isFinite(Number(s.delaySeconds)) ? Number(s.delaySeconds) : 120
   s.retry = Number(s.retry) > 0 ? Number(s.retry) : 5
   s.retryIntervalSeconds = Number(s.retryIntervalSeconds) > 0 ? Number(s.retryIntervalSeconds) : 30
+
+  const a = isObj(conf.activityReminder) ? conf.activityReminder : (conf.activityReminder = {})
+  a.enable = a.enable !== false
+  a.groups = normalizeGroupIds(a.groups)
+  a.atAllGroups = normalizeGroupIds(a.atAllGroups)
+  const hours = Array.isArray(a.hoursBefore)
+    ? [...new Set(a.hoursBefore.map(Number).filter(validReminderHours))].sort((x, y) => y - x)
+    : []
+  a.hoursBefore = hours.length ? hours : [24, 6]
+  a.cacheMaxAgeHours = validReminderHours(a.cacheMaxAgeHours) ? Number(a.cacheMaxAgeHours) : 48
+  if (a.botRoutes !== undefined) {
+    const routes = {}
+    if (isObj(a.botRoutes)) {
+      for (const [groupId, route] of Object.entries(a.botRoutes)) {
+        const id = String(groupId ?? '').trim()
+        const bot = String(route ?? '').trim()
+        if (id && bot) routes[id] = bot
+      }
+    }
+    a.botRoutes = routes
+  }
   return conf
 }
 
 export function loadConfig() {
   ensureConfigFile(defaultPath, YAML.stringify(DEFAULT_CONFIG))
   ensureConfigFile(userPath, header)
-  return normalize(merge(parseYaml(defaultPath), parseYaml(userPath)))
+  return normalizeConfig(merge(parseYaml(defaultPath), parseYaml(userPath)))
 }
 
 /** 发现用户配置被修改时热重载 */

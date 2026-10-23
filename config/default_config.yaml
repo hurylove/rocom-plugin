@@ -31,3 +31,20 @@ subscribe:
   # 抓取重试次数与间隔
   retry: 5
   retryIntervalSeconds: 30
+
+# ---------- 活动到期提醒 ----------
+activityReminder:
+  # 全局总开关；各群仍需单独开启
+  enable: true
+
+  # 已开启活动到期提醒的群号
+  groups: []
+
+  # 需要 @全体成员的群号；该名单不会自动开启群订阅
+  atAllGroups: []
+
+  # 到期前提醒阶段（小时），每个活动每阶段成功送达一次
+  hoursBefore: [24, 6]
+
+  # 活动缓存最大允许年龄（小时）
+  cacheMaxAgeHours: 48
