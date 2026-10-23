@@ -36,7 +36,9 @@ export class RocomActivityReminder extends BaseApp {
     super({
       name: 'activity-reminder',
       dsc: '活动到期提醒（结束前 24h / 6h 各一次）',
-      priority: 5002,
+      // 必须早于 San-plugin「提醒」(priority 5000, reg ^#(.*)提醒(.*)$)，
+      // 否则 #活动提醒开启 会被其宽正则先截走；本插件正则为严格全匹配，不抢其它消息
+      priority: 399,
       rule: [{ reg: REMINDER_COMMAND_PATTERN, fnc: 'reminder' }],
       task: [{ cron: '0 * * * * *', name: '活动到期提醒检查', log: false, fnc: () => this.check() }]
     })
