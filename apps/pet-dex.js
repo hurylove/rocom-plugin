@@ -31,7 +31,7 @@ export class RocomPetDex extends BaseApp {
 
   async search(e) {
     if (!(await this.checkGroup(e))) return false
-    const keyword = this.args(e, /^#?精灵搜索\\s*/)[0]
+    const keyword = this.args(e, /^#?精灵搜索\s*/)[0]
     if (!keyword) return e.reply('请输入要搜索的名称关键词，例如：#精灵搜索 迪莫')
     const pets = searchPets(keyword)
     if (!pets.length) return e.reply(`没有找到名称包含「${keyword}」的精灵。`)
@@ -46,7 +46,7 @@ export class RocomPetDex extends BaseApp {
 
   async byNumber(e) {
     if (!(await this.checkGroup(e))) return false
-    const number = this.args(e, /^#?精灵编号\\s*/)[0]
+    const number = this.args(e, /^#?精灵编号\s*/)[0]
     const found = findPetByNumber(number)
     if (!found) return e.reply(`没有找到编号 ${number} 的精灵。`)
     if (found.candidates) return this.pickCandidate(e, found)
@@ -55,7 +55,7 @@ export class RocomPetDex extends BaseApp {
 
   async detail(e) {
     if (!(await this.checkGroup(e))) return false
-    const keyword = this.args(e, /^#?精灵\\s*/)[0]
+    const keyword = this.args(e, /^#?精灵\s*/)[0]
     if (!keyword || !keyword.trim()) return this.usage(e)
     const found = findPet(keyword)
     if (!found) return e.reply(`没有找到名称包含「${keyword}」的精灵，可先 #精灵搜索 ${keyword}`)

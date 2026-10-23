@@ -134,3 +134,24 @@ test('搜索结果与索引整体：展示名全局唯一，同名组靠形态�
   assert.equal(byNum.total, 4)
   assert.ok(byNum.candidates.every((p) => p.name === '雪绒鸟'))
 })
+
+test('this.args 前缀正则能剥掉指令前缀（防双反斜杠转义回归）', () => {
+  const source = fs.readFileSync(new URL('../apps/pet-dex.js', import.meta.url), 'utf-8')
+  const literals = [...source.matchAll(/this\.args\(e,\s*(\/[^\/]+\/[gimsuy]*)\)/g)].map((m) => m[1])
+  assert.equal(literals.length, 3, 'expected three args() prefix regexes')
+  const regs = literals.map((lit) => new Function('return ' + lit)())
+  // 与 components/base-app.js 的 args() 实现保持一致：剥前缀 → trim → 按空白切分
+  const argsImpl = (msg, prefixRe) => String(msg).replace(prefixRe, '').trim().split(/\s+/).filter(Boolean)
+  const [searchRe, numberRe, detailRe] = regs
+  assert.deepEqual(argsImpl('#精灵搜索 雪绒鸟', searchRe), ['雪绒鸟'])
+  assert.deepEqual(argsImpl('#精灵编号 018', numberRe), ['018'])
+  assert.deepEqual(argsImpl('#精灵 雪绒鸟', detailRe), ['雪绒鸟'])
+  assert.deepEqual(argsImpl('#精灵 雪绒鸟（春天的样子）', detailRe), ['雪绒鸟（春天的样子）'])
+  // 回归点：正则字面量里写成 \\s 时 \s 变成「反斜杠+s」，前缀剥不掉，关键词退化成 "#精灵"
+  for (const lit of literals) assert.ok(!lit.includes('\\\\'), 'double-escaped metachar in ' + lit)
+  // 端到端：提取出的关键词必须能在索引里定位到精灵
+  const keyword = argsImpl('#精灵 雪绒鸟（春天的样子）', detailRe)[0]
+  const found = findPet(keyword)
+  assert.ok(found && found.id, 'keyword ' + keyword + ' must resolve')
+  assert.equal(found.formLabel, '春天的样子')
+})
