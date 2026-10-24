@@ -192,3 +192,18 @@ test('候选列表每行都是可直接复制的完整指令', () => {
   assert.ok(!tpl.includes('·'), '不应带项目符号，方便直接复制: ' + JSON.stringify(tpl))
   assert.ok(tpl.includes('displayName(p)'), '应使用含形态的展示名: ' + JSON.stringify(tpl))
 })
+
+test('搜索结果每行也是可直接复制的完整指令', () => {
+  const source = fs.readFileSync(new URL('../apps/pet-dex.js', import.meta.url), 'utf-8')
+  const start = source.indexOf('async search(e)')
+  const end = source.indexOf('async byNumber(', start)
+  const body = source.slice(start, end)
+  const BT = String.fromCharCode(96)
+  const marker = 'pets.map((p) => ' + BT
+  const i = body.indexOf(marker)
+  assert.ok(i >= 0, '搜索行模板未找到')
+  const tpl = body.slice(i + marker.length, body.indexOf(BT, i + marker.length))
+  assert.ok(tpl.startsWith('#精灵 '), '搜索行必须以 #精灵 开头，实际: ' + JSON.stringify(tpl))
+  assert.ok(!tpl.includes('·'), '搜索行不应带项目符号: ' + JSON.stringify(tpl))
+  assert.ok(tpl.includes('displayName(p)'), '应使用含形态的展示名: ' + JSON.stringify(tpl))
+})

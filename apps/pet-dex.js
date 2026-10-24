@@ -35,7 +35,8 @@ export class RocomPetDex extends BaseApp {
     if (!keyword) return e.reply('请输入要搜索的名称关键词，例如：#精灵搜索 迪莫')
     const pets = searchPets(keyword)
     if (!pets.length) return e.reply(`没有找到名称包含「${keyword}」的精灵。`)
-    const lines = pets.map((p) => `· ${displayName(p)} — ${p.number} ${p.types.join('/')}${p.shiny ? ' 有异色' : ''}`)
+    // 每行以可直接复制发送的完整指令开头，编号属性跟在后面
+    const lines = pets.map((p) => `#精灵 ${displayName(p)} — ${p.number} ${p.types.join('/')}${p.shiny ? ' 有异色' : ''}`)
     return e.reply([
       `找到 ${pets.length} 条精灵形态：`,
       ...lines.slice(0, 30),
