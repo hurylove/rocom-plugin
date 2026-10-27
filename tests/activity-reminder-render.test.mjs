@@ -208,11 +208,11 @@ test('reminder schema uses only existing components and exposes exactly the shar
   assert.ok(schemas.some((entry) => entry.field === 'activityReminderGroups'))
 })
 
-test('help remains ten sections with command cards separate from notes; README matches permissions and protection', async () => {
+test('help preserves existing sections and adds skills; command cards remain separate from notes', async () => {
   const { parseHelp } = await import('../components/help.js')
   const markdown = source('resources/help/help.md')
   const groups = parseHelp(markdown)
-  assert.equal(groups.length, 10)
+  assert.equal(groups.length, 11)
   assert.ok(groups.some((entry) => entry.group === '精灵图鉴'))
   assert.ok(groups.length <= 12)
   const reminder = groups.find((entry) => entry.group === '活动到期提醒')
@@ -239,7 +239,8 @@ test('template compiles 1/many/missing/hostile/long items with escaped HTML and 
   for (const items of [[item()], Array.from({ length: 25 }, (_, index) => item({ id: String(index), title: '活动-' + index, cover: '' })), [item({ title: hostile, category: hostile, rewards: long, end: hostile, leftText: hostile, cover: 'https://example.invalid/a.png' })]]) {
     const html = compile(await renderPayload(data(items)))
     assert.equal((html.match(/<article class="activity">/g) || []).length, items.length)
-    assert.ok(html.includes(items.length > 1 ? '活动-24' : (items[0].title === hostile ? '&lt;script&gt;' : '春日同行')))
+    if (items[0].title === hostile) assert.match(html, /(?:&lt;|&#60;)script(?:&gt;|&#62;)/)
+    else assert.ok(html.includes(items.length > 1 ? '活动-24' : '春日同行'))
     assert.ok(!html.includes('<script>'))
     assert.ok(!html.includes('<img src="https://'))
     if (items[0].title === hostile) assert.ok(html.includes(long))
