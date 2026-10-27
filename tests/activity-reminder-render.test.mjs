@@ -212,9 +212,13 @@ test('help preserves existing sections and adds skills; command cards remain sep
   const { parseHelp } = await import('../components/help.js')
   const markdown = source('resources/help/help.md')
   const groups = parseHelp(markdown)
-  assert.equal(groups.length, 11)
+  // 12 是 components/help.js MAX_SECTIONS 的上限值：特性图鉴是第 12 个真实章节，
+  // 再加第 13 个章节会被 parseHelp 的 .slice(0, MAX_SECTIONS) 静默丢弃。
+  assert.equal(groups.length, 12)
   assert.ok(groups.some((entry) => entry.group === '精灵图鉴'))
+  assert.ok(groups.some((entry) => entry.group === '特性图鉴'))
   assert.ok(groups.length <= 12)
+  assert.equal(groups.length, 12, 'help.md 已用满 MAX_SECTIONS=12，新增章节需先合并既有章节')
   const reminder = groups.find((entry) => entry.group === '活动到期提醒')
   assert.equal(reminder.list.length, 5)
   assert.equal(reminder.notes.length, 6)
