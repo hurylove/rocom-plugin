@@ -244,6 +244,6 @@ export async function buildPetDexData(pet, detail) {
     pills: (detail && detail.pills) || [],
     branches: (detail && detail.branches) || [],
     skills: (detail && detail.skills) || [],
-    footer: 'rocom-plugin · 数据来源 精灵图鉴'
+    footer: 'rocom-plugin · 精灵图鉴'
   }
 }

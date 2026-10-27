@@ -20,19 +20,15 @@ const file = new URL('../resources/skill-dex.html', import.meta.url)
 const compile = template.compile(fs.readFileSync(file, 'utf8'), { filename: file.pathname, cache: false })
 const cacheImage = async () => ''
 
-test('技能图片页脚使用技能指令且网址解码为可读中文', () => {
+test('技能图片页脚只显示插件名与技能指令，不暴露数据来源', () => {
   const [page] = buildSkillPages(detail({ url: 'https://wiki.biligame.com/nrc/%E6%89%93%E5%96%B7%E5%9A%8F' }))
-  assert.equal(page.sourceUrl, 'https://wiki.biligame.com/nrc/打喷嚏')
+  assert.equal(page.sourceUrl, undefined)
   const html = compile(page)
+  assert.ok(html.includes('rocom-plugin'), '页脚应显示插件名')
   assert.ok(html.includes('#技能 名称'), '页脚应提示技能指令')
   assert.ok(html.includes('#技能搜索'), '页脚应提示技能搜索')
   assert.ok(!html.includes('#精灵'), '技能图片不得出现精灵指令')
-  assert.ok(!html.includes('%E6%89%93'), '网址不应保留百分号编码')
-})
-
-test('无效网址不会让渲染抛错', () => {
-  const [page] = buildSkillPages(detail({ url: 'https://wiki.biligame.com/nrc/%E6' }))
-  assert.equal(page.sourceUrl, 'https://wiki.biligame.com/nrc/%E6')
+  assert.ok(!/wiki\.biligame|%E6%89%93|Wiki/i.test(html), '技能图片不得出现数据来源或网址')
 })
 
 test('技能图片保留状态技能威力、耗能、石头条件与具体形态', () => {
@@ -85,11 +81,11 @@ test('模板转义技能说明、获取条件与精灵名，不注入网页标�
   assert.ok(!html.includes('undefined')); assert.ok(!html.includes('[object Object]'))
 })
 
-test('缓存过期提示与来源数据时间都可见', () => {
+test('缓存过期提示与数据时间都可见，但不出现来源网址', () => {
   const html = compile(buildSkillPages(detail({ stale: true }))[0])
   assert.ok(html.includes('当前使用已有缓存'))
-  assert.ok(html.includes('https://wiki.biligame.com/nrc/打喷嚏'))
   assert.ok(html.includes('2026/10/24'))
+  assert.ok(!/wiki\.biligame|Wiki/i.test(html), '技能图片不得出现数据来源')
 })
 
 test('非法分页大小被明确拒绝', () => {
