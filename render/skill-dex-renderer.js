@@ -6,6 +6,7 @@ const METHODS = [['default', '自学'], ['blood', '血脉'], ['stone', '技能�
 const text = (value, fallback = '') => value == null || String(value).trim() === '' ? fallback : String(value).trim()
 const list = (value) => Array.isArray(value) ? value : []
 const displayName = (pet) => text(pet.displayName) || text(pet.name, '名称未提供') + (pet.formLabel ? '（' + pet.formLabel + '）' : '')
+const readableUrl = (value) => { try { return decodeURI(text(value)) } catch { return text(value) } }
 
 export function buildSkillPages(detail, pageSize = 24) {
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 60) throw new RangeError('每页条数须为 1–60')
@@ -24,7 +25,7 @@ export function buildSkillPages(detail, pageSize = 24) {
     stoneSources: list(detail.stoneSources).map(pet => ({ displayName: displayName(pet), icon: text(pet.icon), condition: text(pet.condition, '获取条件未提供') })),
     learningAvailable: detail.learningAvailable === true, total: all.length, counts, stale: detail.stale === true,
     fetchedAt: Number.isNaN(stamp.getTime()) ? '时间未提供' : stamp.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }),
-    sourceUrl: text(detail.url), fontUrl: pathToFileURL(templateDir + 'font/AlimamaFangYuanTiVF.ttf').href,
+    sourceUrl: readableUrl(detail.url), fontUrl: pathToFileURL(templateDir + 'font/AlimamaFangYuanTiVF.ttf').href,
     renderScale: 1, pageCount
   }
   return Array.from({ length: pageCount }, (_, index) => {
