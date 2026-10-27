@@ -7,8 +7,8 @@ const text = (value, fallback = '') => value == null || String(value).trim() ===
 const list = (value) => Array.isArray(value) ? value : []
 const displayName = (pet) => text(pet.displayName) || text(pet.name, '名称未提供') + (pet.formLabel ? '（' + pet.formLabel + '）' : '')
 
-export function buildSkillPages(detail, pageSize = 24) {
-  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 60) throw new RangeError('每页条数须为 1–60')
+export function buildSkillPages(detail, pageSize = Infinity) {
+  if (pageSize !== Infinity && (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 60)) throw new RangeError('每页条数须为正整数或 Infinity')
   const all = METHODS.flatMap(([source]) => list(detail.learners?.[source]).map(pet => ({
     displayName: displayName(pet), number: text(pet.number, '—'), icon: text(pet.icon),
     types: list(pet.types).join('/'), level: text(pet.level) ? (/^\d+$/.test(text(pet.level)) ? 'Lv.' + pet.level : text(pet.level)) : '', source
@@ -47,7 +47,7 @@ export async function renderSkillDex(detail, options = {}) {
       renderScale = config.renderScale / 100
     }
     if (!Number.isFinite(renderScale) || renderScale <= 0) renderScale = 1
-    const pages = buildSkillPages(detail, options.pageSize ?? 24)
+    const pages = buildSkillPages(detail, options.pageSize ?? Infinity)
     const cacheImage = options.cacheImage || (await import('../models/skill-dex.js')).cachedSkillImage
     const urls = [...new Set(pages.flatMap(page => [page.icon, ...page.stoneSources.map(pet => pet.icon), ...page.groups.flatMap(group => group.items.map(pet => pet.icon))]).filter(Boolean))]
     const images = new Map()

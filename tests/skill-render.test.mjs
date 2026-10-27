@@ -40,7 +40,8 @@ test('技能图片保留状态技能威力、耗能、石头条件与具体形�
   assert.equal(page.groups[0].items[0].level, 'Lv.26')
   assert.equal(page.groups[2].items[0].displayName, '香草甜甜（杨桃饰品）')
   const html = compile(page)
-  for (const value of ['使用2次打喷嚏', '睡铃雪影娃娃', '香草甜甜（樱桃饰品）', '第 1 / 1 页', '暂无通过该方式学习的精灵']) assert.ok(html.includes(value), value)
+  for (const value of ['使用2次打喷嚏', '睡铃雪影娃娃', '香草甜甜（樱桃饰品）', '暂无通过该方式学习的精灵']) assert.ok(html.includes(value), value)
+  assert.ok(!html.includes('第 1 / 1 页'), '单图不应再显示页码')
   assert.equal((html.match(/class="pet"/g) || []).length, 18)
 })
 
@@ -50,18 +51,19 @@ test('威力耗能数字0与字符串0都不会显示为未知', () => {
   assert.equal((compile(page).match(/<strong>0<\/strong>/g) || []).length, 2)
 })
 
-test('125条按方式跨页且无遗漏重复，形态顺序保持', () => {
+test('125条一次性渲染在同一张图，无遗漏重复且形态顺序保持', () => {
   const learners = { default: Array.from({ length: 26 }, (_, i) => learner('自学' + i)), blood: Array.from({ length: 3 }, (_, i) => learner('血脉' + i)), stone: Array.from({ length: 96 }, (_, i) => learner('石头' + i)) }
   const pages = buildSkillPages(detail({ learners }))
-  assert.equal(pages.length, 6)
-  assert.deepEqual(pages.map(p => p.shown), [24, 24, 24, 24, 24, 5])
-  const names = pages.flatMap(p => p.groups.flatMap(g => g.items.map(x => x.displayName)))
+  assert.equal(pages.length, 1)
+  const [page] = pages
+  assert.equal(page.shown, 125); assert.equal(page.total, 125); assert.equal(page.pageCount, 1)
+  const names = page.groups.flatMap(g => g.items.map(x => x.displayName))
   assert.equal(names.length, 125); assert.equal(new Set(names).size, 125)
   assert.deepEqual(names, Object.values(learners).flat().map(p => p.name))
-  pages.forEach((p, i) => { assert.equal(p.pageNumber, i + 1); assert.equal(p.pageCount, 6); assert.equal(p.total, 125) })
-  const html = pages.map(compile).join('\n')
+  const html = compile(page)
   assert.equal((html.match(/class="pet"/g) || []).length, 125)
   assert.equal((html.match(/<h2>技能石获取<\/h2>/g) || []).length, 1)
+  assert.ok(!html.includes('本页'))
 })
 
 test('未知学习资料不假报0，自学等真空组可明确显示暂无', () => {
@@ -92,15 +94,16 @@ test('非法分页大小被明确拒绝', () => {
   for (const size of [0, -1, 1.5, 61, NaN]) assert.throws(() => buildSkillPages(detail(), size), RangeError)
 })
 
-test('renderer逐页使用隔离的saveId、保持顺序并返回图片数组', async () => {
+test('renderer一次渲染只出一张图且保留渲染参数', async () => {
   const payloads = []
   const input = detail({ learners: { default: [], blood: [], stone: Array.from({ length: 50 }, (_, i) => learner('精灵' + i)) } })
   const out = await renderSkillDex(input, { cacheImage, renderScale: 2, screenshot: async (key, payload) => { assert.equal(key, 'rocom_skill_dex'); payloads.push(payload); return 'image' + payload.pageNumber } })
-  assert.deepEqual(out, ['image1', 'image2', 'image3'])
-  assert.equal(new Set(payloads.map(p => p.saveId)).size, 3)
+  assert.deepEqual(out, ['image1'])
+  assert.equal(payloads.length, 1)
   assert.equal(payloads[0].renderScale, 2)
-  assert.ok(payloads.every(p => p.tplFile.endsWith('skill-dex.html')))
-  assert.ok(payloads.every(p => p.imgType === 'png'))
+  assert.ok(payloads[0].tplFile.endsWith('skill-dex.html'))
+  assert.equal(payloads[0].imgType, 'png')
+  assert.equal(payloads[0].groups.reduce((n, g) => n + g.items.length, 0), 50)
 })
 
 test('并发查询不会复用截图输出路径', async () => {
