@@ -7,7 +7,7 @@ export default [
     label: '启用开轮订阅提醒',
     component: 'Switch',
     componentProps: { defaultValue: false },
-    bottomHelpMessage: '开启后，每轮开始时自动抓取货物并比对关键词，命中则在订阅群里推送提醒。'
+    bottomHelpMessage: '开启后，开轮延迟结束即按分钟补查当前轮次商品，命中后按群通知；成功群本轮不重复发送。'
   },
 
   { component: 'Divider', label: '推送目标' },
@@ -23,7 +23,7 @@ export default [
     label: '提醒时 @全体成员',
     component: 'Switch',
     componentProps: { defaultValue: true },
-    bottomHelpMessage: '机器人没有管理员权限时会自动降级为普通消息，不会发送失败。'
+    bottomHelpMessage: '@全体失败时尝试普通提醒；降级成功后本轮不重复发送，完全失败则记录原因并在后续检查重试。'
   },
 
   { component: 'Divider', label: '订阅关键词' },
@@ -41,20 +41,20 @@ export default [
     label: '开轮后延迟（秒）',
     component: 'InputNumber',
     componentProps: { min: 0, max: 1800 },
-    bottomHelpMessage: '数据源按轮次更新，开轮瞬间可能还是旧数据。延迟一段时间再抓能提高准确率。'
+    bottomHelpMessage: '首次检查的最早时间；此后在当前轮次内按分钟补查，空数据不会提前占用通知名额。'
   },
   {
     field: 'subscribeRetry',
-    label: '重试次数',
+    label: '抓取最大尝试次数',
     component: 'InputNumber',
     componentProps: { min: 1, max: 20 },
-    bottomHelpMessage: '抓取失败或未命中时的重试次数。'
+    bottomHelpMessage: '单次检查中抓取异常时的最大尝试次数；空数据或未命中交由后续分钟检查。'
   },
   {
     field: 'subscribeRetryIntervalSeconds',
     label: '重试间隔（秒）',
     component: 'InputNumber',
     componentProps: { min: 10, max: 600 },
-    bottomHelpMessage: '每次重试之间等待的时间。总覆盖窗口 = 延迟 + 重试次数 × 重试间隔。'
+    bottomHelpMessage: '抓取异常后的重试等待时间；不限制整轮补查窗口，同一次检查未结束时不会启动重叠任务。'
   }
 ]
