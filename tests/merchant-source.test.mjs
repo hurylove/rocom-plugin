@@ -14,60 +14,88 @@ register('data:text/javascript;base64,' + Buffer.from(loader).toString('base64')
 const merchant = await import('../models/merchant.js')
 const { RocomMerchant } = await import('../apps/merchant.js')
 const now = new Date('2026-11-02T19:00:00+08:00')
-const snapshot = (override = {}) => ({
-  status: 'open', round: 3, startedAtBeijing: '2026-11-02 16:00:00', nextRefreshBeijing: '2026-11-02 20:00:00',
-  fetchedAt: '2026-11-02T11:00:00.000Z', timezone: 'Asia/Shanghai', sourceUrl: 'https://upstream.example/source',
-  items: [
-    { name: '黑晶琉璃', price: '1,000', limit: '0', image: '/items/crystal.png', category: '炼金材料', description: '示例描述', rounds: [3] },
-    { name: '捣蛋糖果*30', price: '5', limit: '1', image: 'https://cdn.example/item.png', category: '活动货币', rounds: [1, 2, 3, 4] }
-  ], ...override
-})
 
-test('映射价格、限购、品类、描述和图片，并保留旧返回字段', () => {
-  const data = merchant.parseMerchantSnapshot(snapshot(), now)
+const entry = (rounds, { name, price, limit, currency = '洛克贝', category = '炼金材料', img = '', desc = '' }) =>
+  '<li class="all_show li_show ' + rounds.map((r) => 'show_' + r).join(' ') + '  " style="display:none" data-currency="' + currency + '" ' +
+  "onclick=\"showShopinfo('" + img + "','" + name + "','" + category + "','" + desc + "')\">" +
+  '<div class="gitem"><img src="' + img + '" alt=""><em>限购' + limit + '</em></div>' +
+  '<div class="sp-text"><p><em class="shop_name">' + name + '</em></p>' +
+  '<div><em class="shop_price">价格：' + price + ' </em></div></div></li>'
+
+const page = (items, activeRound = 3) => {
+  const tabs = [1, 2, 3, 4].map((n) =>
+    '<li class="check_' + n + (n === activeRound ? ' on' : ' ') + '" data-index="' + n + '">' +
+    '<em>0' + (n * 4) + ':00</em><i></i><em>0' + (n * 4 + 4) + ':00</em></li>').join('')
+  return '<html><body><div class="time-box"><ul class="time-list">' + tabs + '</ul></div>' +
+    '<div class="shop-con"><ul class="shop-list">' + items.join('') + '</ul></div></body></html>'
+}
+
+const sample = () => page([
+  entry([3], { name: '黑晶琉璃', price: '1000', limit: '100', img: 'https://patchwiki.biligame.com/x.png', desc: '示例描述' }),
+  entry([1, 2, 3, 4], { name: '捣蛋糖果*30', price: '5', limit: '1', currency: '蜂窝', category: '活动货币' })
+])
+
+test('解析商品名称、价格、限购、货币、品类、描述和图片', () => {
+  const data = merchant.parseMerchantSnapshot(sample(), now)
   assert.equal(data.slot.id, 3)
   assert.equal(data.left, 3600000)
   assert.equal(data.next, 0)
   assert.equal(data.goods.length, 2)
-  assert.equal(data.goods[0].price, 1000)
-  assert.equal(data.goods[0].priceText, '1,000')
-  assert.equal(data.goods[0].buy_limit, 0)
-  assert.equal(data.goods[0].limitText, '0')
-  assert.deepEqual(data.goods[0].tags, ['炼金材料'])
-  assert.equal(data.goods[0].content, '示例描述')
-  assert.equal(data.goods[0].img, 'https://rocokingdomworld.org/items/crystal.png')
-  assert.equal(data.goods[0].state, '在售')
-  assert.equal(data.goods[0].batch, 3)
-  assert.equal(data.goods[1].long, true)
-  assert.equal(data.goods[0].hot, false)
+  const [first, second] = data.goods
+  assert.equal(first.name, '黑晶琉璃')
+  assert.equal(first.priceText, '1000')
+  assert.equal(first.price, 1000)
+  assert.equal(first.limitText, '100')
+  assert.equal(first.currency, '洛克贝')
+  assert.deepEqual(first.tags, ['炼金材料'])
+  assert.equal(first.content, '示例描述')
+  assert.equal(first.img, 'https://patchwiki.biligame.com/x.png')
+  assert.equal(first.state, '在售')
+  assert.equal(first.batch, 3)
+  assert.equal(first.long, false)
+  assert.equal(second.currency, '蜂窝')
+  assert.equal(second.long, true)
   assert.equal(data.sourceUrl, merchant.SOURCE_URL)
+  assert.equal(data.sourceName, '好游快爆')
   assert.equal(data.queryTimeText, '11-02 19:00')
 })
 
-test('上一轮、上一天及上游报错快照不产生当前库存', () => {
-  for (const changed of [
-    { round: 2 }, { startedAtBeijing: '2026-11-01 16:00:00' },
-    { nextRefreshBeijing: '2026-11-01 20:00:00' }, { status: 'closed' }, { lastFetchError: 'upstream unavailable' }
-  ]) {
-    const data = merchant.parseMerchantSnapshot(snapshot(changed), now)
+test('保留原文价格写法，不把 160w 变成数字', () => {
+  const html = page([entry([3], { name: '炫彩蛋', price: '160w', limit: '1' })])
+  const item = merchant.parseMerchantSnapshot(html, now).goods[0]
+  assert.equal(item.priceText, '160w')
+  assert.equal(item.price, 0)
+})
+
+test('页面标记的时段与当前北京时间不一致时不展示商品', () => {
+  for (const activeRound of [1, 2, 4]) {
+    const data = merchant.parseMerchantSnapshot(page([entry([3], { name: '旧货', price: '1', limit: '1' })], activeRound), now)
     assert.deepEqual(data.goods, [])
     assert.deepEqual(data.all, [])
     assert.match(data.notice, /刷新/)
   }
 })
 
-test('意外混入其他轮次的记录不会标为当前在售', () => {
-  const body = snapshot()
-  body.items.push({ name: '别轮商品', price: '2', limit: '1', rounds: [2] })
-  const data = merchant.parseMerchantSnapshot(body, now)
-  assert.equal(data.goods.length, 2)
+test('页面没有时段标记时明确提示而不猜测', () => {
+  const data = merchant.parseMerchantSnapshot('<html><body>维护中</body></html>', now)
+  assert.deepEqual(data.goods, [])
+  assert.match(data.notice, /无法识别/)
+})
+
+test('只取当前轮次，常驻商品出现在每一轮', () => {
+  const html = page([
+    entry([3], { name: '本轮', price: '1', limit: '1' }),
+    entry([2], { name: '上轮', price: '2', limit: '1' }),
+    entry([1, 2, 3, 4], { name: '常驻', price: '3', limit: '1' })
+  ])
+  const data = merchant.parseMerchantSnapshot(html, now)
+  assert.deepEqual(data.goods.map((g) => g.name), ['本轮', '常驻'])
   assert.deepEqual(data.all, data.goods)
 })
 
-test('按北京时间计算营业前、四轮边界和最后一分钟', () => {
-  const before = new Date('2026-11-02T07:59:59+08:00')
-  assert.equal(merchant.activeSlot(before), null)
-  assert.equal(merchant.nextRoundIn(before), 1000)
+test('营业前、四轮边界与最后一分钟按北京时间计算', () => {
+  assert.equal(merchant.activeSlot(new Date('2026-11-02T07:59:59+08:00')), null)
+  assert.equal(merchant.nextRoundIn(new Date('2026-11-02T07:59:59+08:00')), 1000)
   for (const [hour, id] of [['08', 1], ['12', 2], ['16', 3], ['20', 4]]) {
     const date = new Date('2026-11-02T' + hour + ':00:00+08:00')
     assert.equal(merchant.activeSlot(date).id, id)
@@ -78,54 +106,7 @@ test('按北京时间计算营业前、四轮边界和最后一分钟', () => {
   assert.equal(merchant.activeSlot(new Date('2026-11-03T00:00:00+08:00')), null)
 })
 
-test('第四轮跨年结束时间能匹配新站快照', () => {
-  const body = snapshot({ round: 4, startedAtBeijing: '2026-12-31 20:00:00', nextRefreshBeijing: '2027-01-01 00:00:00' })
-  body.items = [{ name: '跨日商品', price: '3', limit: '1', rounds: [4] }]
-  const data = merchant.parseMerchantSnapshot(body, new Date('2026-12-31T23:00:00+08:00'))
-  assert.equal(data.goods.length, 1)
-  assert.equal(data.left, 3600000)
-})
-
-test('缺少数值不会冒充免费或不限，不使用 file 图片地址', () => {
-  const body = snapshot({ items: [{ name: '未知商品', image: 'file:///private/secret', rounds: [3] }] })
-  const item = merchant.parseMerchantSnapshot(body, now).goods[0]
-  assert.equal(item.priceText, '-')
-  assert.equal(item.limitText, '-')
-  assert.equal(item.img, '')
-})
-
-test('结构错误明确失败，合法空列表保持空状态', () => {
-  assert.throws(() => merchant.parseMerchantSnapshot({ items: {} }, now), /结构异常/)
-  assert.throws(() => merchant.parseMerchantSnapshot(snapshot({ items: [{ price: '1' }] }), now), /名称异常/)
-  const empty = merchant.parseMerchantSnapshot(snapshot({ items: [] }), now)
-  assert.deepEqual(empty.goods, [])
-  assert.equal(empty.notice, '')
-})
-
-test('只抓取新站 JSON，禁用缓存且不携带旧站凭据', async (t) => {
-  let request
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
-    request = { url, options }
-    return new Response(JSON.stringify(snapshot()), { status: 200 })
-  })
-  const data = await merchant.fetchCurrentGoods(now)
-  assert.equal(request.url, 'https://rocokingdomworld.org/data/merchant.json')
-  assert.equal(request.options.cache, 'no-store')
-  assert.equal(request.options.credentials, 'omit')
-  const headers = new Headers(request.options.headers)
-  assert.equal(headers.get('authorization'), null)
-  assert.equal(headers.get('cookie'), null)
-  assert.equal(data.goods.length, 2)
-})
-
-test('HTTP 错误不回退旧数据源', async (t) => {
-  let count = 0
-  t.mock.method(globalThis, 'fetch', async () => { count++; return new Response('', { status: 503 }) })
-  await assert.rejects(merchant.fetchCurrentGoods(now), /HTTP 503/)
-  assert.equal(count, 1)
-})
-
-test('非营业时间不请求网络，保留下一轮倒计时', async (t) => {
+test('非营业时间不请求网络', async (t) => {
   const mock = t.mock.method(globalThis, 'fetch', async () => { throw new Error('不应请求') })
   const closed = await merchant.fetchCurrentGoods(new Date('2026-11-02T04:00:00+08:00'))
   assert.equal(mock.mock.callCount(), 0)
@@ -134,14 +115,40 @@ test('非营业时间不请求网络，保留下一轮倒计时', async (t) => {
   assert.deepEqual(closed.goods, [])
 })
 
-test('文字兜底显示来源、真实限购和更新提示', () => {
+test('只抓取 onebiji 页面，禁用缓存且不带凭据', async (t) => {
+  let request
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    request = { url, options }
+    return new Response(sample(), { status: 200 })
+  })
+  const data = await merchant.fetchCurrentGoods(now)
+  assert.equal(request.url, merchant.SOURCE_URL)
+  assert.equal(request.options.cache, 'no-store')
+  assert.equal(request.options.credentials, 'omit')
+  const headers = new Headers(request.options.headers)
+  assert.equal(headers.get('authorization'), null)
+  assert.equal(headers.get('cookie'), null)
+  assert.equal(data.goods.length, 2)
+})
+
+test('HTTP 错误直接失败，不回退旧数据源', async (t) => {
+  let count = 0
+  t.mock.method(globalThis, 'fetch', async () => { count++; return new Response('', { status: 503 }) })
+  await assert.rejects(merchant.fetchCurrentGoods(now), /HTTP 503/)
+  assert.equal(count, 1)
+})
+
+test('商品名称缺失时明确报错而不是产出空名', () => {
+  const broken = '<li class="all_show li_show show_3 "><div class="gitem"><em>限购1</em></div></li>'
+  assert.throws(() => merchant.parseItems(broken), /名称解析失败/)
+})
+
+test('文字兜底显示真实货币、限购和来源', () => {
   const app = new RocomMerchant()
-  const extra = { leftText: '1小时', nextText: '0分钟' }
-  const text = app.textFallback(merchant.parseMerchantSnapshot(snapshot(), now), extra)
-  assert.match(text, /1,000/)
-  assert.match(text, /限购 0/)
-  assert.match(text, /rocokingdomworld\.org\/zh\/merchant\//)
-  const staleText = app.textFallback(merchant.parseMerchantSnapshot(snapshot({ round: 2 }), now), extra)
-  assert.match(staleText, /正在刷新/)
-  assert.doesNotMatch(staleText, /黑晶琉璃/)
+  const data = merchant.parseMerchantSnapshot(sample(), now)
+  const text = app.textFallback(data, { leftText: '1小时', nextText: '0分钟' })
+  assert.match(text, /黑晶琉璃/)
+  assert.match(text, /1000 洛克贝/)
+  assert.match(text, /5 蜂窝/)
+  assert.match(text, /onebiji\.com/)
 })

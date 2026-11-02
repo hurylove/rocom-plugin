@@ -50,7 +50,7 @@ export class RocomMerchant extends BaseApp {
       : `远行商人未营业，距下一轮 ${extra.nextText}`
     const source = data.sourceUrl ? '\n数据来源：' + data.sourceUrl : ''
     if (!data.goods.length) return head + '\n' + (data.notice || '本轮暂无在售货物') + source
-    const lines = data.goods.map((g) => `· ${g.name}  ${g.priceText ?? g.price} 洛克贝  限购 ${g.limitText ?? (g.buy_limit || '不限')}`)
+    const lines = data.goods.map((g) => `· ${g.name}  ${g.priceText ?? g.price} ${g.currency || '洛克贝'}  限购 ${g.limitText ?? (g.buy_limit || '不限')}`)
     return [head, ...lines].join('\n') + source
   }
 }

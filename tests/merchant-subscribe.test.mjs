@@ -22,7 +22,7 @@ globalThis.segment = { at: (qq) => ({ type: 'at', qq }) }
 globalThis.fetch = async (url) => {
   state.fetches.push({ url, at: state.now.getTime() })
   const body = state.fetchImpl ? await state.fetchImpl() : state.snapshot
-  return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(body, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 }
 after(() => {
   for (const [key, value] of Object.entries(originals)) {
@@ -75,25 +75,19 @@ register(dataURL([
 
 const at = (hour, minute = 0, second = 0) => new RealDate(2026, 9, 28, hour, minute, second)
 const goods = (overrides = {}) => ({
-  name: '国王球', description: '', category: '', price: '500', priceRaw: '500',
-  limit: '1', image: '', rounds: [3], ...overrides
+  name: '国王球', desc: '', category: '', price: '500', limit: '1', currency: '洛克贝', rounds: [3], ...overrides
 })
-const SLOTS = { 1: ['08:00', '12:00'], 2: ['12:00', '16:00'], 3: ['16:00', '20:00'], 4: ['20:00', '24:00'] }
-const pad2 = (value) => String(value).padStart(2, '0')
-const beijingDay = (offsetDays = 0) => {
-  const date = new Date(state.now.getTime() + 8 * 3600000)
-  const base = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + offsetDays))
-  return base.getUTCFullYear() + '-' + pad2(base.getUTCMonth() + 1) + '-' + pad2(base.getUTCDate())
-}
+const entryHTML = (item) =>
+  '<li class="all_show li_show ' + item.rounds.map((r) => 'show_' + r).join(' ') + ' " data-currency="' + item.currency + '" ' +
+  'onclick="showShopinfo(\'\',\'' + item.name + '\',\'' + item.category + '\',\'' + item.desc + '\')">' +
+  '<div class="gitem"><em>限购' + item.limit + '</em></div>' +
+  '<div class="sp-text"><p><em class="shop_name">' + item.name + '</em></p>' +
+  '<div><em class="shop_price">价格：' + item.price + ' </em></div></div></li>'
 const snapshot = (items = [goods()], round = 3) => {
-  const [start, end] = SLOTS[round]
-  return {
-    status: 'open', round, timezone: 'Asia/Shanghai',
-    startedAtBeijing: beijingDay() + ' ' + start + ':00',
-    nextRefreshBeijing: beijingDay(end === '24:00' ? 1 : 0) + ' ' + (end === '24:00' ? '00:00' : end) + ':00',
-    fetchedAt: new Date(state.now.getTime()).toISOString(),
-    items
-  }
+  const tabs = [1, 2, 3, 4].map((n) =>
+    '<li class="check_' + n + (n === round ? ' on' : ' ') + '" data-index="' + n + '"></li>').join('')
+  return '<html><body><ul class="time-list">' + tabs + '</ul><ul class="shop-list">' +
+    items.map(entryHTML).join('') + '</ul></body></html>'
 }
 const isImage = (message) => message?.type === 'image'
 const isAtAll = (message) => Array.isArray(message) && message.some((part) => part?.type === 'at' && part.qq === 'all')
@@ -188,7 +182,7 @@ test('本轮暂未命中时不标完成，后续商品更新仍可提醒', async
 
 test('只匹配本轮在售商品，忽略旧日期和其他轮次', async () => {
   const { app } = await setup()
-  state.snapshot = snapshot([goods({ rounds: [2] })])
+  state.snapshot = snapshot([goods({ rounds: [1] })])
   await app.check()
   state.snapshot = snapshot([goods()], 2)
   await app.check()
