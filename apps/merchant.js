@@ -32,7 +32,7 @@ export class RocomMerchant extends BaseApp {
     const extra = {
       leftText: fmtLeft(data.left),
       nextText: fmtLeft(data.next),
-      nowText: `${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+      nowText: data.queryTimeText || `${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
     }
 
     log.i(`${data.slot ? data.slot.name : '非营业时间'} 抓取到 ${data.goods.length} 件货物`)
@@ -48,8 +48,9 @@ export class RocomMerchant extends BaseApp {
     const head = data.slot
       ? `远行商人 ${data.slot.name}（${data.slot.start}-${data.slot.end}，剩余 ${extra.leftText}）`
       : `远行商人未营业，距下一轮 ${extra.nextText}`
-    if (!data.goods.length) return head + '\n本轮暂无在售货物'
-    const lines = data.goods.map((g) => `· ${g.name}  ${g.price} 洛克贝  限购 ${g.buy_limit || '不限'}`)
-    return [head, ...lines].join('\n')
+    const source = data.sourceUrl ? '\n数据来源：' + data.sourceUrl : ''
+    if (!data.goods.length) return head + '\n' + (data.notice || '本轮暂无在售货物') + source
+    const lines = data.goods.map((g) => `· ${g.name}  ${g.priceText ?? g.price} 洛克贝  限购 ${g.limitText ?? (g.buy_limit || '不限')}`)
+    return [head, ...lines].join('\n') + source
   }
 }

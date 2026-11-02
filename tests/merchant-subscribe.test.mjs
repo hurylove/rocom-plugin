@@ -19,7 +19,11 @@ state.ClockDate = class extends RealDate {
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'rocom-merchant-test-'))
 const originals = { redis: globalThis.redis, segment: globalThis.segment, fetch: globalThis.fetch }
 globalThis.segment = { at: (qq) => ({ type: 'at', qq }) }
-globalThis.fetch = async () => { throw new Error('Tests must not use the network') }
+globalThis.fetch = async (url) => {
+  state.fetches.push({ url, at: state.now.getTime() })
+  const body = state.fetchImpl ? await state.fetchImpl() : state.snapshot
+  return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
+}
 after(() => {
   for (const [key, value] of Object.entries(originals)) {
     if (value === undefined) delete globalThis[key]
@@ -39,12 +43,6 @@ const components = dataURL(prelude + [
   'export const config = new Proxy({}, { get: (_, name) => state.config[name] });',
   'export const dataDir = state.dataDir;',
   'export const log = Object.fromEntries(["i", "w", "e", "d"].map(level => [level, (...args) => state.logs.push({ level, text: args.map(String).join(" ") })]));'
-].join('\n'))
-const fetcher = dataURL(prelude + [
-  'export async function fetchSnapshot(url) {',
-  '  state.fetches.push({ url, at: state.now.getTime() });',
-  '  return state.fetchImpl ? state.fetchImpl() : state.snapshot;',
-  '}'
 ].join('\n'))
 const renderer = dataURL(prelude + [
   'export async function renderMerchant(data) {',
@@ -66,7 +64,6 @@ register(dataURL([
   '    return { url: url.href, shortCircuit: true };',
   '  }',
   '  if (parent === appURL && specifier === "../render/merchant-renderer.js") return { url: ' + JSON.stringify(renderer) + ', shortCircuit: true };',
-  '  if (parent === merchantURL && specifier === "./fetch.js") return { url: ' + JSON.stringify(fetcher) + ', shortCircuit: true };',
   '  return nextResolve(specifier, context);',
   '}',
   'export async function load(url, context, nextLoad) {',
@@ -78,10 +75,26 @@ register(dataURL([
 
 const at = (hour, minute = 0, second = 0) => new RealDate(2026, 9, 28, hour, minute, second)
 const goods = (overrides = {}) => ({
-  name: '国王球', content: '', tags: '', stime: '2026-10-28 16:00:00', etime: '2026-10-28 19:59:59',
-  day_batch: 3, price: 500, buy_limit: 1, ...overrides
+  name: '国王球', description: '', category: '', price: '500', priceRaw: '500',
+  limit: '1', image: '', rounds: [3], ...overrides
 })
-const snapshot = (items = [goods()], batch = 3) => ({ list: [{ batch, items }] })
+const SLOTS = { 1: ['08:00', '12:00'], 2: ['12:00', '16:00'], 3: ['16:00', '20:00'], 4: ['20:00', '24:00'] }
+const pad2 = (value) => String(value).padStart(2, '0')
+const beijingDay = (offsetDays = 0) => {
+  const date = new Date(state.now.getTime() + 8 * 3600000)
+  const base = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + offsetDays))
+  return base.getUTCFullYear() + '-' + pad2(base.getUTCMonth() + 1) + '-' + pad2(base.getUTCDate())
+}
+const snapshot = (items = [goods()], round = 3) => {
+  const [start, end] = SLOTS[round]
+  return {
+    status: 'open', round, timezone: 'Asia/Shanghai',
+    startedAtBeijing: beijingDay() + ' ' + start + ':00',
+    nextRefreshBeijing: beijingDay(end === '24:00' ? 1 : 0) + ' ' + (end === '24:00' ? '00:00' : end) + ':00',
+    fetchedAt: new Date(state.now.getTime()).toISOString(),
+    items
+  }
+}
 const isImage = (message) => message?.type === 'image'
 const isAtAll = (message) => Array.isArray(message) && message.some((part) => part?.type === 'at' && part.qq === 'all')
 const notices = (gid) => state.sends.filter((entry) => !isImage(entry.message) && (gid === undefined || entry.gid === String(gid)))
@@ -89,10 +102,11 @@ let sequence = 0
 
 async function setup({ store = new Map(), subscribe = {}, now = at(16, 2), dataDir } = {}) {
   Object.assign(state, {
-    now, store, dataDir: dataDir || fs.mkdtempSync(path.join(tempRoot, 'case-')), snapshot: snapshot(), image: { type: 'image', file: 'fixture' },
+    now, store, dataDir: dataDir || fs.mkdtempSync(path.join(tempRoot, 'case-')), snapshot: null, image: { type: 'image', file: 'fixture' },
     fetches: [], renders: [], sends: [], logs: [], writes: [],
     fetchImpl: null, renderImpl: null, sendImpl: null, failReads: false, failWrites: false, unavailable: new Set()
   })
+  state.snapshot ??= snapshot()
   state.config = { subscribe: {
     enable: true, groups: ['101', '102'], keywords: ['国王球'], atAll: true,
     delaySeconds: 120, retry: 2, retryIntervalSeconds: 0, ...subscribe
@@ -174,7 +188,7 @@ test('本轮暂未命中时不标完成，后续商品更新仍可提醒', async
 
 test('只匹配本轮在售商品，忽略旧日期和其他轮次', async () => {
   const { app } = await setup()
-  state.snapshot = snapshot([goods({ stime: '2026-10-27 16:00:00', etime: '2026-10-27 19:59:59' })])
+  state.snapshot = snapshot([goods({ rounds: [2] })])
   await app.check()
   state.snapshot = snapshot([goods()], 2)
   await app.check()
@@ -184,7 +198,7 @@ test('只匹配本轮在售商品，忽略旧日期和其他轮次', async () =>
 
 test('关键词保持商品描述和标签的大小写不敏感包含匹配', async () => {
   const { app } = await setup({ subscribe: { keywords: ['vIp'] } })
-  state.snapshot = snapshot([goods({ name: '礼盒', tags: 'VIP|精品' })])
+  state.snapshot = snapshot([goods({ name: '礼盒', category: 'VIP', description: '精品' })])
   await app.check()
   assert.equal(notices().length, 2)
 })
@@ -336,7 +350,7 @@ test('下一轮使用独立键，不受上一轮成功标记影响', async () =>
   const { app } = await setup()
   await app.check()
   state.now = at(20, 2)
-  state.snapshot = snapshot([goods({ day_batch: 4, stime: '2026-10-28 20:00:00', etime: '2026-10-28 23:59:59' })], 4)
+  state.snapshot = snapshot([goods({ rounds: [4] })], 4)
   await app.check()
   assert.equal(notices().length, 4)
   assert.equal(state.store.size, 4)

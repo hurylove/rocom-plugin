@@ -125,18 +125,18 @@
         </div>
       </div>
       <div class="pricebox">
-        <span class="price">{{item.price}}</span>
-        <span class="limit">限购 {{item.buy_limit > 0 ? item.buy_limit : '不限'}}</span>
+        <span class="price">{{item.priceText || item.price}}</span>
+        <span class="limit">限购 {{item.limitText || (item.buy_limit > 0 ? item.buy_limit : '不限')}}</span>
       </div>
     </div>
     {{/each}}
   </div>
   {{else}}
   <div class="empty">
-    {{if slot}}本轮暂无在售货物<br>货物尚未更新{{else}}远行商人今日已结束营业<br>下一轮 {{nextText}} 后开始{{/if}}
+    {{if notice}}{{notice}}{{else if slot}}本轮暂无在售货物{{else}}远行商人今日已结束营业<br>下一轮 {{nextText}} 后开始{{/if}}
   </div>
   {{/if}}
 
-  <div class="footer">rocom-plugin · {{nowText}}</div>
+  <div class="footer">rocom-plugin{{if sourceName}} · {{sourceName}}{{/if}} · {{nowText}}</div>
 </body>
 </html>

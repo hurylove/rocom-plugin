@@ -1,9 +1,10 @@
 import { log } from '../components/index.js'
-import { fetchSnapshot } from './fetch.js'
 
-const BASE = 'https://db.18183.com/lkwgyxsr/'
+export const SOURCE_URL = 'https://rocokingdomworld.org/zh/merchant/'
+export const DATA_URL = 'https://rocokingdomworld.org/data/merchant.json'
+const SOURCE_NAME = 'Roco Kingdom World'
 
-/** 远行商人每日四轮，与 18183 页面保持一致 */
+/** 与新站一致，按北京时间每日四轮 */
 export const slots = [
   { id: 1, name: '第一轮', start: '08:00', end: '12:00' },
   { id: 2, name: '第二轮', start: '12:00', end: '16:00' },
@@ -11,73 +12,107 @@ export const slots = [
   { id: 4, name: '第四轮', start: '20:00', end: '24:00' }
 ]
 
-const toMin = (t) => {
-  const [h, m] = t.split(':').map(Number)
+const beijing = (now) => new Date(now.getTime() + 8 * 3600000)
+const toMin = (time) => {
+  const [h, m] = time.split(':').map(Number)
   return h * 60 + m
 }
+const clockMs = (now) => {
+  const date = beijing(now)
+  return (date.getUTCHours() * 60 + date.getUTCMinutes()) * 60000 + date.getUTCSeconds() * 1000 + date.getUTCMilliseconds()
+}
+const stampAt = (minutes, now) => {
+  const date = beijing(now)
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) + minutes * 60000)
+    .toISOString().replace('T', ' ').slice(0, 19)
+}
 
-/** 当前所处轮次，非营业时间为 null */
 export function activeSlot(now = new Date()) {
-  const m = now.getHours() * 60 + now.getMinutes()
-  return slots.find((s) => m >= toMin(s.start) && m < toMin(s.end)) || null
+  const minutes = clockMs(now) / 60000
+  return slots.find((slot) => minutes >= toMin(slot.start) && minutes < toMin(slot.end)) || null
 }
 
-/** 到轮次结束的剩余毫秒 */
 export function slotLeft(slot, now = new Date()) {
-  if (!slot) return 0
-  const end = toMin(slot.end === '24:00' ? '23:59' : slot.end) * 60 * 1000
-  const cur = (now.getHours() * 60 + now.getMinutes()) * 60 * 1000 + now.getSeconds() * 1000
-  return Math.max(0, end - cur)
+  return slot ? Math.max(0, toMin(slot.end) * 60000 - clockMs(now)) : 0
 }
 
-/** 距下一轮开始的毫秒，最后一轮结束后到次日 08:00 */
 export function nextRoundIn(now = new Date()) {
-  const slot = activeSlot(now)
-  if (slot) return 0
-  const m = now.getHours() * 60 + now.getMinutes()
-  const target = m < toMin('08:00') ? toMin('08:00') : toMin('08:00') + 24 * 60
-  return (target - m) * 60 * 1000
+  return activeSlot(now) ? 0 : Math.max(0, 8 * 3600000 - clockMs(now))
 }
 
 export function fmtLeft(ms) {
   const total = Math.floor(ms / 60000)
   const h = Math.floor(total / 60)
   const m = total % 60
-  return `${h ? h + '小时' : ''}${m}分钟`
+  return (h ? h + '小时' : '') + m + '分钟'
 }
 
-const stateOf = (item, now) => {
-  const s = new Date(String(item.stime).replace(/-/g, '/')).getTime()
-  const e = new Date(String(item.etime).replace(/-/g, '/')).getTime()
-  if (now < s) return '未开始'
-  if (now > e) return '已过期'
-  return '在售'
+const displayValue = (value) => {
+  if (typeof value !== 'string' && typeof value !== 'number') return '-'
+  return String(value).trim() || '-'
+}
+const numericValue = (value) => {
+  const number = Number(value.replaceAll(',', ''))
+  return Number.isFinite(number) && number >= 0 ? number : 0
+}
+const imageUrl = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return ''
+  try {
+    const url = new URL(value, SOURCE_URL)
+    return ['https:', 'http:'].includes(url.protocol) ? url.href : ''
+  } catch { return '' }
 }
 
-const imgOf = (item) => (/^https?:/.test(item.image) ? item.image : BASE + 'outputs/' + item.image)
-
-/** 取当前轮次的在售货物 */
-export async function fetchCurrentGoods(now = new Date()) {
+/** 只接受当前轮次快照，不混用 rounds 中的旧轮次或常驻商品 */
+export function parseMerchantSnapshot(snapshot, now = new Date()) {
   const slot = activeSlot(now)
-  const data = await fetchSnapshot(BASE + 'outputs/goods-cache.js')
-  const rows = []
-  for (const group of data.list || []) {
-    for (const item of group.items || []) rows.push({ ...item, batch: Number(group.batch) })
+  const result = {
+    slot, left: slotLeft(slot, now), next: nextRoundIn(now), goods: [], all: [],
+    sourceUrl: SOURCE_URL, sourceName: SOURCE_NAME, notice: '', fetchedAt: '',
+    queryTimeText: beijing(now).toISOString().replace('T', ' ').slice(5, 16)
   }
-  const nowTs = now.getTime()
-  const all = rows.map((item) => ({
-    ...item,
-    state: stateOf(item, nowTs),
-    long: String(item.day_batch) === '0' || new Date(String(item.etime).replace(/-/g, '/')) - new Date(String(item.stime).replace(/-/g, '/')) > 5 * 3600 * 1000,
-    tags: String(item.tags || '').split('|').filter(Boolean),
-    price: Number(item.price) || 0,
-    buy_limit: Number(item.buy_limit) || 0,
-    hot: Number(item.is_hot) === 1,
-    worth: Number(item.is_worth) === 1,
-    img: item.image ? imgOf(item) : '',
-    timeText: `${item.stime.slice(11, 16)} - ${item.etime.slice(11, 16)}`
-  }))
-  const current = slot ? all.filter((x) => x.batch === slot.id) : []
-  log.i(`抓取货物 ${all.length} 件，当前轮次 ${slot ? slot.name : '非营业时间'} 共 ${current.length} 件`)
-  return { slot, left: slotLeft(slot, now), next: nextRoundIn(now), goods: current, all }
+  if (!slot) return result
+  if (!snapshot || typeof snapshot !== 'object' || !Array.isArray(snapshot.items)) {
+    throw new Error('新数据源 JSON 商品结构异常')
+  }
+  result.fetchedAt = typeof snapshot.fetchedAt === 'string' ? snapshot.fetchedAt : ''
+  const stale = snapshot.lastFetchError || snapshot.status !== 'open' || snapshot.round !== slot.id ||
+    snapshot.startedAtBeijing !== stampAt(toMin(slot.start), now) ||
+    snapshot.nextRefreshBeijing !== stampAt(toMin(slot.end), now)
+  if (stale) {
+    result.notice = '数据源尚未更新到当前北京时间轮次，正在刷新中；暂不展示上一轮商品，请稍后再试。'
+    return result
+  }
+  const all = snapshot.items.map((item) => {
+    if (!item || typeof item.name !== 'string' || !item.name.trim()) throw new Error('新数据源商品名称异常')
+    const rounds = Array.isArray(item.rounds) ? item.rounds.map(Number) : []
+    const long = slots.every((value) => rounds.includes(value.id))
+    const priceText = displayValue(item.price ?? item.priceRaw)
+    const limitText = displayValue(item.limit)
+    return {
+      name: item.name.trim(), content: typeof item.description === 'string' ? item.description : '',
+      batch: slot.id, day_batch: long ? '0' : String(slot.id), state: '在售', long,
+      tags: typeof item.category === 'string' && item.category.trim() ? [item.category.trim()] : [],
+      price: numericValue(priceText), priceText, buy_limit: numericValue(limitText), limitText,
+      hot: false, worth: false, img: imageUrl(item.image),
+      stime: snapshot.startedAtBeijing, etime: snapshot.nextRefreshBeijing,
+      timeText: slot.start + ' - ' + slot.end, rounds
+    }
+  })
+  result.goods = all.filter((item) => !item.rounds.length || item.rounds.includes(slot.id))
+  result.all = result.goods
+  return result
+}
+
+export async function fetchCurrentGoods(now = new Date()) {
+  if (!activeSlot(now)) return parseMerchantSnapshot(null, now)
+  const response = await fetch(DATA_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
+    cache: 'no-store', credentials: 'omit', signal: AbortSignal.timeout(15000)
+  })
+  if (!response.ok) throw new Error('请求失败 HTTP ' + response.status + '：' + DATA_URL)
+  const result = parseMerchantSnapshot(await response.json(), now)
+  if (result.notice) log.w(result.notice)
+  else log.i('从 Roco Kingdom World 抓取 ' + result.goods.length + ' 件当前轮次货物')
+  return result
 }
