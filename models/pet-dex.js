@@ -127,6 +127,11 @@ export function parsePetDetail(html, options = {}) {
 
   const stats = [...body.matchAll(/roco-stat-name">([^<]+)<\/span>[\s\S]{0,600}?data-val="(\d+)"/g)]
     .map((m) => ({ name: m[1].trim(), value: Number(m[2]) }))
+  if (!stats.length) {
+    for (const m of body.matchAll(/sd-p-stat-label">([^<]+)<\/div>[\s\S]{0,600}?sd-p-stat-number">(\d+)</g)) {
+      stats.push({ name: m[1].trim(), value: Number(m[2]) })
+    }
+  }
 
   const pills = []
   for (const m of body.matchAll(/<span class="roco-pill[^"]*">([\s\S]*?)(?=<span class="roco-pill[ "]|<\/div>)/g)) {
@@ -186,6 +191,55 @@ export function parsePetDetail(html, options = {}) {
     if (nodes.length) branches.push({ name: groupName, nodes, conns })
   }
 
+  if (!pills.length) {
+    const overview = sliceBlocks(/<div class="sd-p-measures"([^>]*)>/g, [/<div class="sd-p-relations[ "]/, /<div class="sd-p-section[ "]/, /<div class="sd-p-templates[ "]/])[0]?.block || ''
+    for (const m of overview.matchAll(/sd-p-measure-label">([\s\S]*?)<\/div>[\s\S]*?sd-p-measure-value">([\s\S]*?)<\/div>/g)) {
+      pills.push({ key: stripTags(m[1]), value: stripTags(m[2]) })
+    }
+    for (const m of overview.matchAll(/sd-p-label">([\s\S]*?)<\/div>[\s\S]*?sd-p-value">([\s\S]*?)<\/div>/g)) {
+      pills.push({ key: stripTags(m[1]), value: stripTags(m[2]) })
+    }
+  }
+
+  if (!skills.length) {
+    for (const { attrs, block } of sliceBlocks(
+      /<div class="sd-p-skill-card"([^>]*)>/g,
+      [/<div class="sd-p-skill-card[ "]/, /<div class="sd-p-empty[ "]/, /<div class="sd-p-section[ "]/, /<div class="sd-p-templates[ "]/]
+    )) {
+      const attr = (name) => stripTags((attrs.match(new RegExp('data-' + name + '="([^"]*)"')) || [])[1])
+      const source = attr('source')
+      const name = attr('name')
+      if (!name) continue
+      skills.push({
+        name,
+        type: attr('type').replace(/系$/, ''),
+        cat: attr('category'),
+        power: stripTags((block.match(/sd-p-power-number">([\s\S]*?)<\/div>/) || [])[1]),
+        source,
+        cost: attr('energy'),
+        level: source === 'machine' ? '' : attr('level'),
+        desc: stripTags((block.match(/sd-p-skill-description">([\s\S]*?)<\/div>/) || [])[1])
+      })
+    }
+  }
+
+  if (!branches.length) {
+    for (const { block } of sliceBlocks(
+      /<div class="sd-p-evo-group"([^>]*)>/g,
+      [/<div class="sd-p-evo-group[ "]/, /<div class="sd-p-section[ "]/]
+    )) {
+      const nodes = slice2Blocks(block, /<div class="sd-p-evo-node[^"]*" data-roman="([^"]*)">/g, [/<div class="sd-p-evo-node/, /<div class="sd-p-evo-connector/])
+        .map(({ attrs, block: nb }) => ({
+          name: stripTags((nb.match(/sd-p-evo-name-main">([\s\S]*?)<\/div>/) || [])[1]),
+          roman: attrs,
+          current: /class="sd-p-evo-card is-current"/.test(nb)
+        })).filter((n) => n.name)
+      const conns = [...block.matchAll(/sd-p-evo-condition">([\s\S]*?)(?=<div class="sd-p-evo-node)/g)]
+        .map((m) => stripTags(m[1]))
+      if (nodes.length) branches.push({ name: '', nodes, conns })
+    }
+  }
+
   const evolveChain = body.match(/roco-evo-branch-btn[^>]*title="([^"]+)"/) ? true : Boolean(branches.length)
 
   return {
@@ -205,7 +259,8 @@ export async function getPetDetail(pet, { force = false, fetcher = null, now = n
   const cacheFile = path.join(PAGES_DIR, pet.id + '.json')
   if (!force) {
     const cached = readCache(cacheFile)
-    if (cached && now.getTime() - Date.parse(cached.fetchedAt) < DETAIL_TTL_MS) return cached
+    // Wiki 切换详情模板后，旧解析器可能留下仍在 TTL 内的空详情。
+    if (cached && cached.stats?.length && now.getTime() - Date.parse(cached.fetchedAt) < DETAIL_TTL_MS) return cached
   }
   const url = WIKI_BASE + pet.page
   const doFetch = fetcher || (() => fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(20000) }).then((r) => {
