@@ -2,7 +2,7 @@
  *  来源：wiki.biligame.com/nrc 精灵图鉴
  *  条件：归属赛季 + 有异色 + 进化位置为初始
  *  图片：页面 .npc-art-shiny 节点中的异色立绘
- *  更新时间：2026-10-22
+ *  更新时间：2026-10-22（S1–S4）；2026-11-05（S5）
  */
 const SEASON_META = {
   "S1": {
@@ -24,6 +24,11 @@ const SEASON_META = {
     "name": "月涌狂想",
     "accent": "#7453a0",
     "accent2": "#b17bc7"
+  },
+  "S5": {
+    "name": "圣龙宝藏",
+    "accent": "#7a5a20",
+    "accent2": "#f0c96a"
   }
 }
 
@@ -681,6 +686,161 @@ const SEASON_PETS = {
         "光"
       ],
       "img": "https://patchwiki.biligame.com/images/nrc/5/54/a6fr7aw7g66bjzzd35w2anwmyq9co76.png"
+    }
+  ],
+  "S5": [
+    {
+      "number": "092",
+      "name": "锤头鹳",
+      "types": [
+        "翼",
+        "水"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/2/28/e07ejtpknfuqrobzai3dnz7ep9tn5kt.png"
+    },
+    {
+      "number": "201",
+      "name": "花怨鳗",
+      "types": [
+        "地",
+        "草"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/d/de/qcyh60pm6xc7a45om97didk62nveph0.png"
+    },
+    {
+      "number": "203",
+      "name": "伊雷龙",
+      "types": [
+        "龙"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/8/83/gii8jz1sy227sht0ny46wk6bwy2nh7t.png"
+    },
+    {
+      "number": "224",
+      "name": "小翼龙",
+      "types": [
+        "龙",
+        "翼"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/2/21/gbgm6b6kvojn6j6tk15muqs8wr7dbu2.png"
+    },
+    {
+      "number": "229",
+      "name": "缇塔",
+      "types": [
+        "机械"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/8/84/or238uzrfcdvjumwqx9r5mcbt08195s.png"
+    },
+    {
+      "number": "249",
+      "name": "可爱猿",
+      "types": [
+        "火"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/9/98/icucng2gt8tkv3ubhvzicxsdm9jlwws.png"
+    },
+    {
+      "number": "273",
+      "name": "深蓝鲸",
+      "types": [
+        "水"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/6/6c/mckicfv6wjezxyzyf81gri0tuyo0q39.png"
+    },
+    {
+      "number": "287",
+      "name": "吸泥鸥",
+      "types": [
+        "地",
+        "翼"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/4/4e/0ze13gmh2z3so8lw01ul771tdq467vh.png"
+    },
+    {
+      "number": "471",
+      "name": "地银链",
+      "types": [
+        "地"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/6/61/qtz6g1b7n54ln3r9wim4dr9c0lmvr83.png"
+    },
+    {
+      "number": "474",
+      "name": "沉金兽",
+      "types": [
+        "电"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/0/04/c1mdqocxfs6yjj2tmoptmxfauq6n585.png"
+    },
+    {
+      "number": "477",
+      "name": "乐乐鲨",
+      "types": [
+        "水"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/e/e4/dg00owlowj4rt6iyr070ekq9miw78ig.png"
+    },
+    {
+      "number": "479",
+      "name": "蛋包蛋",
+      "types": [
+        "普通",
+        "萌"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/3/30/56qtel4732oy4n6pvp474ktjy6tgf4t.png"
+    },
+    {
+      "number": "481",
+      "name": "蟹蟹椰",
+      "types": [
+        "水",
+        "草"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/9/9c/nbekruxwdbroj3bnfvdcj4rk8t3re3d.png"
+    },
+    {
+      "number": "483",
+      "name": "鲸羽",
+      "types": [
+        "幻",
+        "冰"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/a/a9/h2pd1t9dxzqqfa8xoh3a80w99ezjnao.png"
+    },
+    {
+      "number": "485",
+      "name": "豆粒鹅",
+      "types": [
+        "冰"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/0/0d/q1isp18ncev630teus144x7shjmpzgy.png"
+    },
+    {
+      "number": "487",
+      "name": "西瓜虫",
+      "types": [
+        "虫",
+        "草"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/e/e2/r81ydsfmpyo2mae4edqnwwky9njwl7f.png"
+    },
+    {
+      "number": "489",
+      "name": "小剪影",
+      "types": [
+        "幽"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/8/88/d9toeeovkl8tkjx64h4vtd6byvdizoq.png"
+    },
+    {
+      "number": "491",
+      "name": "滴溜豚",
+      "types": [
+        "毒",
+        "幻"
+      ],
+      "img": "https://patchwiki.biligame.com/images/nrc/f/f9/803m4xtfcmxobfaeky44b35jnslem8u.png"
     }
   ]
 }

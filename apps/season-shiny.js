@@ -8,7 +8,7 @@ export class RocomSeasonShiny extends BaseApp {
       name: 'season-shiny',
       dsc: '洛克王国世界赛季有异色初始精灵总图',
       priority: 5000,
-      rule: [{ reg: '^#?(?:S|s)[1-4]异色$', fnc: 'season' }]
+      rule: [{ reg: '^#?(?:S|s)[1-5]异色$', fnc: 'season' }]
     })
   }
 
