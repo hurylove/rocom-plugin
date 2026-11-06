@@ -76,13 +76,14 @@
       <div class="pic">{{if item.image}}<img src="{{item.image}}" alt="{{item.name}}">{{/if}}</div>
       <div class="rank">No.{{index + 1}}</div>
       <div class="name">{{item.name}}</div>
-      <div class="no">{{item.number}}</div>
+      {{if item.typeName}}<div class="no">{{item.typeName}}</div>{{/if}}
       <div class="prob">{{item.probText}}</div>
-      <div class="range">尺寸 {{item.sizeRange}}<br>重量 {{item.weightRange}}</div>
+      <div class="range">匹配概率{{if item.badge}} · {{item.badge}}{{/if}}</div>
+      {{if item.edgeText}}<div class="range">{{item.edgeText}}</div>{{/if}}
     </div>
     {{/each}}
   </div>
 
-  <div class="footer">rocom-plugin · 共 {{result.total}} 只可能孵化的精灵</div>
+  <div class="footer">共 {{result.total}} 个候选{{if result.cards.length < result.total}} · 显示前 {{result.cards.length}} 个{{/if}}<br>rocom-plugin<br>概率为站点推算，仅供参考。</div>
 </body>
 </html>

@@ -114,9 +114,10 @@ subscribe:
 ### 孵蛋查询
 
 `#孵蛋查询 <尺寸m> <重量kg>`：按蛋体尺寸与重量反推可能孵化的精灵，例如 `#孵蛋查询 0.56 20.504`。
-- 返回每只候选精灵的孵化概率、编号、典型尺寸与典型重量，按概率从高到低排列。
-- 双系叠加概率由站点计算，越界数值会被直接排除，因此没有命中时请确认单位与数值。
-- 精灵图按需缓存到 `data/hatch_images/`。
+- 数据来自 [洛克工具箱](https://rocom.vip/hatch-query) 的公开查询接口，按网站默认的尺寸、重量查询，不附加随机蛋或孵化时间筛选。
+- 保留网站候选顺序与匹配概率原文，显示属性、概率同乘和极端体型提示（若站点提供）；不再混用旧站的编号、典型尺寸与典型重量。概率为站点推算，仅供参考。
+- 与网站一样最多展示前 40 个候选，同时注明完整候选数量；没有命中时请确认单位与数值，接口失败则明确提示不可用，不回退旧数据。
+- 支持米/千克单位及逗号分隔，拒绝负数、多余数字等歧义输入。精灵图按需缓存到 `data/hatch_images/rocom_*`，下载失败仍展示文字信息。
 
 ### 系别克制
 
@@ -203,7 +204,7 @@ rocom-plugin/
 | --- | --- |
 | 远行商人 / 开轮订阅 | [db.18183.com](https://db.18183.com/lkwgyxsr/) 的公开静态数据快照 |
 | 赛季异色图鉴 / 活动总览 | [wiki.biligame.com/nrc](https://wiki.biligame.com/nrc/) |
-| 孵蛋查询 | [luokewangguofudan.wiki](https://luokewangguofudan.wiki/) 的 RSC 接口 |
+| 孵蛋查询 | [rocom.vip/hatch-query](https://rocom.vip/hatch-query) 的 `/api/magic-egg-lookup` 接口 |
 | 系别克制 | [arkmeng.cn/type-chart](https://arkmeng.cn/type-chart) |
 
 本插件仅做整理与展示。

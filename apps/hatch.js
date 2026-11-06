@@ -14,7 +14,6 @@ export class RocomHatch extends BaseApp {
 
   async hatch(e) {
     if (!(await this.checkGroup(e))) return false
-
     const input = this.args(e, /^#?孵蛋查询/)
     const egg = parseEggInput(input.join(' '))
     if (!egg) {
@@ -28,23 +27,29 @@ export class RocomHatch extends BaseApp {
       log.e('孵蛋查询失败：', err)
       return e.reply('孵蛋查询暂时不可用，请稍后再试~')
     }
-
     if (!result.total) {
-      return e.reply(`没有命中候选精灵。\n蛋体：${egg.size} m / ${egg.weight} kg\n请确认单位为 m 与 kg，并尽量输入蛋详情里的原始数值。`)
+      return e.reply('洛克工具箱未找到候选。\n蛋体：' + egg.size + ' m / ' + egg.weight + ' kg\n请确认单位为 m 与 kg，并尽量输入蛋详情里的原始数值。\n数据来源：' + result.sourceUrl)
     }
 
-    log.i(`${egg.size}m/${egg.weight}kg 命中 ${result.total} 只候选`)
+    log.i(egg.size + 'm/' + egg.weight + 'kg 命中 ' + result.total + ' 个候选')
     const img = await renderHatch(result)
     if (img) return e.reply(img)
-
     log.w('孵蛋查询渲染失败，退回文字')
     return e.reply(this.textFallback(result))
   }
 
   textFallback(result) {
-    const lines = result.cards.map(
-      (card, i) => `${i + 1}. ${card.name} ${card.number}  ${card.probText}  ${card.sizeRange} / ${card.weightRange}`
-    )
-    return [`孵蛋查询：${result.size} m / ${result.weight} kg`, ...lines].join('\n')
+    const lines = result.cards.map((card, i) => [
+      (i + 1) + '. ' + card.name,
+      '匹配概率 ' + card.probText,
+      card.badge, card.typeName, card.edgeText
+    ].filter(Boolean).join(' · '))
+    const count = '共 ' + result.total + ' 个候选' +
+      (result.cards.length < result.total ? '，显示前 ' + result.cards.length + ' 个' : '')
+    return [
+      '孵蛋查询：' + result.size + ' m / ' + result.weight + ' kg',
+      ...lines, count, '数据来源：' + result.sourceName + ' ' + result.sourceUrl,
+      '概率为站点推算，仅供参考。'
+    ].join('\n')
   }
 }

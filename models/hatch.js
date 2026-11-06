@@ -1,176 +1,119 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { dataDir, log } from '../components/index.js'
 
-const BASE = 'https://luokewangguofudan.wiki'
+const BASE = 'https://rocom.vip'
+export const SOURCE_URL = BASE + '/hatch-query'
 const IMG_DIR = path.join(dataDir, 'hatch_images')
-const UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-
-function ensureImgDir() {
-  if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true })
+const MAX_CARDS = 40
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+const text = (value) => typeof value === 'string' ? value.trim() : ''
+const finiteNumber = (value) => {
+  if (value == null || typeof value === 'boolean' || String(value).trim() === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
 }
 
-/** 精灵图按需下载到本地，返回本地文件名；失败返回空串 */
-async function cacheImage(file) {
-  if (!file) return ''
-  ensureImgDir()
-  const save = path.join(IMG_DIR, file)
+function imageUrl(value) {
+  if (!text(value)) return null
   try {
-    if (fs.existsSync(save) && fs.statSync(save).size > 500) return file
-    const res = await fetch(`${BASE}/assets/webp/friends/${file}`, {
-      headers: { 'User-Agent': UA, Referer: `${BASE}/` },
-      signal: AbortSignal.timeout(15000)
+    const url = new URL(value, BASE)
+    if (url.protocol !== 'https:' || url.username || url.password ||
+        !['rocom.vip', 'rococdn.kekit.vip'].includes(url.host) ||
+        !/\.(webp|png|jpe?g)$/i.test(url.pathname)) return null
+    return url
+  } catch {
+    return null
+  }
+}
+
+async function cacheImage(url) {
+  if (!url) return ''
+  try {
+    // 签名会过期；缓存键只取资源路径，并与旧站图片隔离。
+    const key = createHash('sha256').update(url.origin + url.pathname).digest('hex').slice(0, 32)
+    const file = path.join(IMG_DIR, 'rocom_' + key + path.extname(url.pathname).toLowerCase())
+    if (fs.existsSync(file) && fs.statSync(file).size > 0) return pathToFileURL(file).href
+    const res = await fetch(url.href, {
+      headers: { 'User-Agent': UA, Referer: SOURCE_URL },
+      signal: AbortSignal.timeout(10000),
+      redirect: 'error'
     })
-    if (!res.ok) return ''
+    if (!res.ok || !/^image\//i.test(res.headers.get('content-type') || '')) return ''
     const buf = Buffer.from(await res.arrayBuffer())
-    if (buf.length < 300) return ''
-    fs.writeFileSync(save, buf)
-    return file
+    if (!buf.length || buf.length > 5 * 1024 * 1024) return ''
+    fs.mkdirSync(IMG_DIR, { recursive: true })
+    fs.writeFileSync(file, buf)
+    return pathToFileURL(file).href
   } catch {
     return ''
   }
 }
 
-/**
- * 站点结果由 React Server Components 在服务端渲染。
- * 请求时带 Accept: text/x-component 即可直接拿到含全部候选卡片的 flight 数据，
- * 无需启动浏览器。返回体每行形如 `<id>:<JSON>`，行间用 `$L<id>` 惰性引用。
- */
-function parseFlight(raw) {
-  const rows = new Map()
-  for (const line of raw.split('\n')) {
-    const m = /^([0-9a-f]+):(.*)$/.exec(line)
-    if (!m) continue
-    try {
-      rows.set(m[1], JSON.parse(m[2]))
-    } catch {
-      // I[...] / HL[...] 这类元信息行不是 JSON，跳过
-    }
+function probabilityText(row) {
+  const label = text(row.match_probability_text)
+  if (label) return label
+  const value = finiteNumber(row.match_probability) ?? finiteNumber(row.fit_score)
+  return value === null ? '--' : Math.max(0, value).toFixed(1) + '%'
+}
+
+function toCard(row) {
+  if (!row || typeof row !== 'object' || !text(row.display_name)) {
+    throw new Error('孵蛋查询返回了无效的候选数据')
   }
-  if (!rows.size) return null
-
-  const resolve = (node, seen) => {
-    if (typeof node === 'string') {
-      const ref = /^\$L([0-9a-f]+)$/.exec(node)
-      if (ref && rows.has(ref[1]) && !seen.has(ref[1])) {
-        const next = new Set(seen)
-        next.add(ref[1])
-        return resolve(rows.get(ref[1]), next)
-      }
-      return node
-    }
-    if (Array.isArray(node)) return node.map((item) => resolve(item, seen))
-    if (node && typeof node === 'object') {
-      const out = {}
-      for (const key of Object.keys(node)) out[key] = resolve(node[key], seen)
-      return out
-    }
-    return node
+  const preview = row.pet_preview || {}
+  const hint = row.height_edge_hint || {}
+  const edgeProbability = finiteNumber(hint.probability)
+  const edgeProbabilityText = text(hint.probability_text) ||
+    (edgeProbability === null ? '' : edgeProbability.toFixed(1) + '%')
+  return {
+    name: text(row.display_name),
+    probText: probabilityText(row),
+    badge: text(row.same_ride_label),
+    typeName: text(preview.type_name),
+    edgeText: text(hint.label) && edgeProbabilityText ? text(hint.label) + ' ' + edgeProbabilityText : '',
+    imageUrl: imageUrl(preview.body_url) || imageUrl(preview.avatar_url)
   }
-
-  const rootKey = rows.has('0') ? '0' : [...rows.keys()][0]
-  return resolve(rows.get(rootKey), new Set([rootKey]))
 }
 
-const tagOf = (node) => (Array.isArray(node) ? node[1] : null)
-const propsOf = (node) => (Array.isArray(node) && node[3] && typeof node[3] === 'object' ? node[3] : {})
-const kidsOf = (node) => {
-  const children = propsOf(node).children
-  return Array.isArray(children) ? children : children == null ? [] : [children]
-}
-const textOf = (node) => {
-  if (typeof node === 'string') return node
-  if (Array.isArray(node)) return node.map(textOf).join('')
-  return ''
+function validEgg(size, weight) {
+  return Number.isFinite(size) && Number.isFinite(weight) && size > 0 && weight > 0 && size <= 10 && weight <= 1000
 }
 
-/** 从 flight 树里抽出结果卡片（按卡片 key 去重） */
-function parseCards(raw) {
-  const tree = parseFlight(raw)
-  if (!tree) return []
-
-  const cards = []
-  const seen = new Set()
-  const collect = (node) => {
-    if (Array.isArray(node)) {
-      if (node[0] === '$' && node[1] === 'article') {
-        const key = typeof node[2] === 'string' ? node[2] : ''
-        if (!seen.has(key)) {
-          seen.add(key)
-          cards.push(node)
-        }
-      }
-      node.forEach(collect)
-    } else if (node && typeof node === 'object') {
-      Object.keys(node).forEach((key) => collect(node[key]))
-    }
-  }
-  collect(tree)
-
-  return cards.map((card) => {
-    const out = { prob: 0, name: '', badge: '', number: '', sizeRange: '', weightRange: '', image: '' }
-    out.image = (/friends%2F(JL_[A-Za-z0-9_]+\.webp)/.exec(JSON.stringify(card)) || [, ''])[1]
-
-    const visit = (node) => {
-      if (!Array.isArray(node)) {
-        if (node && typeof node === 'object') Object.keys(node).forEach((key) => visit(node[key]))
-        return
-      }
-      const tag = tagOf(node)
-      const props = propsOf(node)
-      const cls = typeof props.className === 'string' ? props.className : ''
-      const text = textOf(kidsOf(node)).trim()
-
-      if (tag === 'h3') out.name = text
-      else if (tag === 'span' && cls.includes('border-primary')) out.badge = text
-      else if (tag === 'div' && cls.includes('bottom-5')) out.number = text
-      else if (/^[0-9]+(\.[0-9]+)?%$/.test(text)) out.prob = Number(text.replace('%', ''))
-      else if (/^[0-9.]+-[0-9.]+ m$/.test(text)) out.sizeRange = text
-      else if (/^[0-9.]+-[0-9.]+ kg$/.test(text)) out.weightRange = text
-
-      kidsOf(node).forEach(visit)
-    }
-    visit(card)
-    return out
-  })
+export function parseEggInput(value) {
+  const match = /^\s*(\d+(?:\.\d+)?|\.\d+)(?:\s*(?:m|米)\s*[,，]?\s*|[\s,，]+)(\d+(?:\.\d+)?|\.\d+)\s*(?:kg|千克|公斤)?\s*$/i.exec(String(value ?? ''))
+  if (!match) return null
+  const size = Number(match[1])
+  const weight = Number(match[2])
+  return validEgg(size, weight) ? { size, weight } : null
 }
 
-/** 把 `0.56 20.504` 之类的输入拆成尺寸与重量 */
-export function parseEggInput(text) {
-  const nums = [...String(text || '').matchAll(/[0-9]+(?:\.[0-9]+)?/g)].map((m) => Number(m[0]))
-  if (nums.length < 2) return null
-  const [size, weight] = nums
-  if (!(size > 0) || !(weight > 0)) return null
-  if (size > 10 || weight > 1000) return null
-  return { size, weight }
-}
-
-/** 查询孵蛋结果；无匹配返回 cards 为空数组 */
 export async function queryHatch(size, weight) {
-  const url = `${BASE}/?size=${size}&weight=${weight}`
-  const res = await fetch(url, {
-    headers: { 'User-Agent': UA, Accept: 'text/x-component' },
-    signal: AbortSignal.timeout(20000)
+  if (!validEgg(size, weight)) throw new Error('孵蛋查询尺寸或重量无效')
+  const params = new URLSearchParams({ height_m: String(size), weight_kg: String(weight) })
+  const res = await fetch(BASE + '/api/magic-egg-lookup?' + params, {
+    headers: { 'User-Agent': UA, Accept: 'application/json', Referer: SOURCE_URL },
+    signal: AbortSignal.timeout(20000),
+    redirect: 'error'
   })
-  if (!res.ok) throw new Error(`孵蛋查询失败 HTTP ${res.status}`)
-  const raw = await res.text()
+  if (!res.ok) throw new Error('孵蛋查询失败 HTTP ' + res.status)
+  const payload = await res.json()
+  if (payload?.ok !== true) throw new Error('孵蛋查询失败：' + (text(payload?.message) || '站点返回异常'))
+  if (!Array.isArray(payload.matched)) throw new Error('孵蛋查询返回格式异常')
 
-  const cards = parseCards(raw).filter((card) => card.name && card.prob > 0)
-  if (!cards.length) return { size, weight, cards: [], total: 0 }
-
-  const withImage = await Promise.all(
-    cards.map(async (card) => {
-      const file = await cacheImage(card.image)
-      return {
-        ...card,
-        image: file ? pathToFileURL(path.join(IMG_DIR, file)).href : '',
-        probText: `${Number.isInteger(card.prob) ? card.prob : card.prob.toFixed(2)}%`
-      }
-    })
-  )
-
-  log.d(`孵蛋查询 ${size}m/${weight}kg 命中 ${withImage.length} 只`)
-  return { size, weight, cards: withImage, total: withImage.length }
+  // 保留站点原始顺序和概率文本，包含概率被四舍五入为 0 的候选。
+  const matched = payload.matched.map(toCard)
+  const cards = matched.slice(0, MAX_CARDS)
+  let next = 0
+  await Promise.all(Array.from({ length: Math.min(4, cards.length) }, async () => {
+    while (next < cards.length) {
+      const card = cards[next++]
+      card.image = await cacheImage(card.imageUrl)
+      delete card.imageUrl
+    }
+  }))
+  log.d('孵蛋查询 ' + size + 'm/' + weight + 'kg 命中 ' + matched.length + ' 个候选（rocom.vip）')
+  return { size, weight, cards, total: matched.length, sourceName: '洛克工具箱', sourceUrl: SOURCE_URL }
 }
